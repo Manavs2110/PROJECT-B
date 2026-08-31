@@ -1,0 +1,7 @@
+.env
+__pycache__/
+*.pyc
+data/sessions/
+output/images/*.jpg
+output/images/*.png
+.DS_Store
