@@ -442,7 +442,7 @@
         if (data.success) {
           renderSlides('post1SlidesContainer', data.slides);
           document.getElementById('post1PreviewSection').classList.remove('hidden');
-          document.getElementById('post1CaptionText').value = `🔥 D-Street Daily Intelligence • Live Nifty & Sensex Scorecard\n\n📊 Full Institutional FII/DII net flows and sector radar in slides!\n\n#FinPulse #Nifty50 #Sensex #StockMarketIndia`;
+          document.getElementById('post1CaptionText').value = data.caption || '';
           btn.innerHTML = `<i class="fa-solid fa-check"></i> Generated Successfully!`;
         }
       } catch (e) {
@@ -466,7 +466,7 @@
         if (data.success) {
           renderSlides('post2SlidesContainer', data.slides);
           document.getElementById('post2PreviewSection').classList.remove('hidden');
-          document.getElementById('post2CaptionText').value = `🎯 NIFTY 50 PREDICTION & TECHNICAL BLUEPRINT 🚀\n\nRange: ${data.model.prediction.expected_trading_range}\nTrend: ${data.model.prediction.predicted_trend}\n\nSwipe to see complete Supports, Resistances, Option Chain PCR & Tactical Trade Plan (Plan A & B)!\n\n#Nifty50 #NiftyPrediction #TechnicalAnalysis #TradingStrategy`;
+          document.getElementById('post2CaptionText').value = data.caption || '';
           btn.innerHTML = `<i class="fa-solid fa-check"></i> Generated Successfully!`;
         }
       } catch (e) {
