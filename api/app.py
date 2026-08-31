@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from config.settings import settings
-from api.routes import market, news, post
+from api.routes import market, news, post, prediction
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -29,6 +29,7 @@ app.mount("/images", StaticFiles(directory=str(settings.OUTPUT_DIR)), name="imag
 app.include_router(market.router)
 app.include_router(news.router)
 app.include_router(post.router)
+app.include_router(prediction.router)
 
 @app.get("/health", tags=["Health"])
 def health_check():

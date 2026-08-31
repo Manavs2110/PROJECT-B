@@ -3,3 +3,8 @@ from .news_service import get_breaking_market_news, get_stock_news_24h
 from .sentiment_service import analyze_market_sentiment
 from .image_service import generate_4slide_carousel
 from .publisher_service import publish_to_instagram
+
+# Nifty 50 Prediction Microservice
+from .technical_analysis_service import fetch_nifty_technical_data
+from .nifty_prediction_service import generate_nifty_prediction_model
+from .prediction_image_service import generate_nifty_prediction_carousel

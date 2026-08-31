@@ -13,7 +13,8 @@ from services import (
 
 def main():
     parser = argparse.ArgumentParser(description="FinPulse Daily Market Intelligence Microservices")
-    parser.add_argument("--generate", action="store_true", help="Generate the 4-slide carousel & caption")
+    parser.add_argument("--generate", action="store_true", help="Generate the 1st Post (Daily Market Intelligence 4-slide carousel)")
+    parser.add_argument("--prediction", action="store_true", help="Generate the 2nd Post (Nifty 50 Prediction & Technical Analysis 4-slide carousel)")
     parser.add_argument("--publish", action="store_true", help="Generate and publish directly to Instagram")
     parser.add_argument("--api", action="store_true", help="Run the FastAPI REST microservice gateway")
     parser.add_argument("--port", type=int, default=settings.PORT, help="Port to run the API on")
@@ -23,6 +24,37 @@ def main():
         import uvicorn
         print(f"🚀 Launching FinPulse REST API on port {args.port}...")
         uvicorn.run("api.app:app", host="0.0.0.0", port=args.port, reload=settings.DEBUG)
+        return
+
+    if args.prediction:
+        from services.nifty_prediction_service import generate_nifty_prediction_model
+        from services.prediction_image_service import generate_nifty_prediction_carousel
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("  FINPULSE NIFTY 50 PREDICTION & TECHNICAL ANALYSIS POST  ")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+        print("1️⃣ Calculating Technicals & Synthesizing Prediction Model...")
+        model = generate_nifty_prediction_model()
+        tech = model["technical_data"]
+        pred = model["prediction"]
+        print(f"   • Nifty Spot:      {tech['formatted_price']}")
+        print(f"   • Predicted Trend: {pred.get('predicted_trend')}")
+        print(f"   • Target Range:    {pred.get('expected_trading_range')}")
+        print(f"   • Probability:     {pred.get('probability_bull_pct')}%")
+
+        print("\n2️⃣ Rendering 4-Slide Prediction Visual Carousel...")
+        slides = generate_nifty_prediction_carousel(model)
+        print("   ✅ Prediction Slides generated:")
+        for idx, s in enumerate(slides, 1):
+            print(f"      [Slide {idx}] {s}")
+
+        if args.publish:
+            print("\n3️⃣ Publishing Nifty Prediction Post to Instagram @finpulse.daily...")
+            caption = f"🎯 Nifty 50 Prediction: Targets {pred.get('expected_trading_range')} • Trend: {pred.get('predicted_trend')} • Pivots & Trade Plan Inside! 👇"
+            res = publish_to_instagram(slides, caption)
+            if res.get("success"):
+                print(f"   🎉 Published successfully! Post URL: {res.get('post_url')}")
+            else:
+                print(f"   ❌ Publish failed: {res.get('error')}")
         return
 
     if args.generate or args.publish:
