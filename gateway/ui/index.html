@@ -429,10 +429,13 @@
       }
     }
 
+    let currentPost1Data = null;
+    let currentPost2Data = null;
+
     // ── Post 1 Generator ──
     async function generatePost1() {
       const btn = document.getElementById('genPost1Btn');
-      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Rendering 4 Slides...`;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Rendering 5 Slides...`;
       btn.disabled = true;
 
       try {
@@ -440,6 +443,7 @@
         const data = await res.json();
 
         if (data.success) {
+          currentPost1Data = data;
           renderSlides('post1SlidesContainer', data.slides);
           document.getElementById('post1PreviewSection').classList.remove('hidden');
           document.getElementById('post1CaptionText').value = data.caption || '';
@@ -447,7 +451,66 @@
         }
       } catch (e) {
         alert('Error generating Post 1: ' + e);
-        btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> Generate 4-Slide Carousel`;
+        btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> Generate 5-Slide Carousel`;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // ── Publish Post 1 to Instagram ──
+    async function publishPost1() {
+      if (!currentPost1Data || !currentPost1Data.slides) {
+        alert('Please generate the post first before publishing.');
+        return;
+      }
+      const btn = document.getElementById('pubPost1Btn');
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Publishing to @finpulse.daily...`;
+      btn.disabled = true;
+
+      try {
+        const caption = document.getElementById('post1CaptionText').value;
+        const res = await fetch('/api/v1/publish/instagram', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            slides: currentPost1Data.slides,
+            caption: caption
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert(`🎉 Successfully Published to Instagram!\n\nPost URL: ${data.post_url}`);
+          window.open(data.post_url, '_blank');
+          btn.innerHTML = `<i class="fa-solid fa-check text-emerald-400"></i> Published Live!`;
+        } else if (data.error === "TWO_FACTOR_REQUIRED") {
+          const code = prompt('Instagram requested 2FA Security Code. Please enter the SMS/Authenticator code:');
+          if (code) {
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Verifying 2FA...`;
+            const retryRes = await fetch('/api/v1/publish/instagram', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                slides: currentPost1Data.slides,
+                caption: caption,
+                verification_code: code
+              })
+            });
+            const retryData = await retryRes.json();
+            if (retryData.success) {
+              alert(`🎉 Successfully Published to Instagram!\n\nPost URL: ${retryData.post_url}`);
+              window.open(retryData.post_url, '_blank');
+              btn.innerHTML = `<i class="fa-solid fa-check text-emerald-400"></i> Published Live!`;
+              return;
+            }
+          }
+          btn.innerHTML = `<i class="fa-brands fa-instagram text-pink-400"></i> Publish to @finpulse.daily`;
+        } else {
+          alert('Instagram Publishing Error: ' + (data.detail?.error || data.error || JSON.stringify(data)));
+          btn.innerHTML = `<i class="fa-brands fa-instagram text-pink-400"></i> Publish to @finpulse.daily`;
+        }
+      } catch (e) {
+        alert('Network Error during publishing: ' + e);
+        btn.innerHTML = `<i class="fa-brands fa-instagram text-pink-400"></i> Publish to @finpulse.daily`;
       } finally {
         btn.disabled = false;
       }
@@ -464,6 +527,7 @@
         const data = await res.json();
 
         if (data.success) {
+          currentPost2Data = data;
           renderSlides('post2SlidesContainer', data.slides);
           document.getElementById('post2PreviewSection').classList.remove('hidden');
           document.getElementById('post2CaptionText').value = data.caption || '';
@@ -472,6 +536,65 @@
       } catch (e) {
         alert('Error generating Post 2: ' + e);
         btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> Generate Prediction Carousel`;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // ── Publish Post 2 to Instagram ──
+    async function publishPost2() {
+      if (!currentPost2Data || !currentPost2Data.slides) {
+        alert('Please generate the prediction post first before publishing.');
+        return;
+      }
+      const btn = document.getElementById('pubPost2Btn');
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Publishing to @finpulse.daily...`;
+      btn.disabled = true;
+
+      try {
+        const caption = document.getElementById('post2CaptionText').value;
+        const res = await fetch('/api/v1/publish/instagram', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            slides: currentPost2Data.slides,
+            caption: caption
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert(`🎉 Successfully Published Prediction to Instagram!\n\nPost URL: ${data.post_url}`);
+          window.open(data.post_url, '_blank');
+          btn.innerHTML = `<i class="fa-solid fa-check text-emerald-400"></i> Published Live!`;
+        } else if (data.error === "TWO_FACTOR_REQUIRED") {
+          const code = prompt('Instagram requested 2FA Security Code. Please enter the SMS/Authenticator code:');
+          if (code) {
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Verifying 2FA...`;
+            const retryRes = await fetch('/api/v1/publish/instagram', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                slides: currentPost2Data.slides,
+                caption: caption,
+                verification_code: code
+              })
+            });
+            const retryData = await retryRes.json();
+            if (retryData.success) {
+              alert(`🎉 Successfully Published Prediction to Instagram!\n\nPost URL: ${retryData.post_url}`);
+              window.open(retryData.post_url, '_blank');
+              btn.innerHTML = `<i class="fa-solid fa-check text-emerald-400"></i> Published Live!`;
+              return;
+            }
+          }
+          btn.innerHTML = `<i class="fa-brands fa-instagram text-pink-400"></i> Publish to @finpulse.daily`;
+        } else {
+          alert('Instagram Publishing Error: ' + (data.detail?.error || data.error || JSON.stringify(data)));
+          btn.innerHTML = `<i class="fa-brands fa-instagram text-pink-400"></i> Publish to @finpulse.daily`;
+        }
+      } catch (e) {
+        alert('Network Error during publishing: ' + e);
+        btn.innerHTML = `<i class="fa-brands fa-instagram text-pink-400"></i> Publish to @finpulse.daily`;
       } finally {
         btn.disabled = false;
       }
