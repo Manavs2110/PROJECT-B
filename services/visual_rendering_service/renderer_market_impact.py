@@ -185,4 +185,17 @@ def render_market_impact_carousel(indices: Dict[str, Any], fii_dii: Dict[str, An
     img4.save(p4, "JPEG", quality=95)
     slides.append(p4)
 
+    # ═════════════════════════════════════════════════════════════════════════
+    # SLIDE 5: ENGAGEMENT & DISCUSSION CTA
+    # ═════════════════════════════════════════════════════════════════════════
+    cta_src = settings.ASSETS_DIR / "templates" / "engagement_slide_5.jpg"
+    p5 = str(settings.OUTPUT_DIR / "market_slide_5.jpg")
+    if cta_src.exists():
+        try:
+            cta_img = Image.open(cta_src).convert("RGB")
+            cta_img.save(p5, "JPEG", quality=98)
+            slides.append(p5)
+        except Exception as e:
+            print(f"⚠️ Error attaching 5th slide: {e}")
+
     return slides

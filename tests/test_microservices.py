@@ -59,14 +59,14 @@ class TestMicroservicesArchitecture(unittest.TestCase):
             "tactical_strategy": "Buy on dips"
         }
         slides = render_market_impact_carousel(indices, flows, sentiment, news)
-        self.assertEqual(len(slides), 4)
+        self.assertEqual(len(slides), 5)
         for s in slides:
             self.assertTrue(os.path.exists(s))
 
     def test_visual_rendering_post2(self):
         model = generate_prediction_model()
         slides = render_prediction_carousel(model)
-        self.assertEqual(len(slides), 4)
+        self.assertEqual(len(slides), 5)
         for s in slides:
             self.assertTrue(os.path.exists(s))
 
