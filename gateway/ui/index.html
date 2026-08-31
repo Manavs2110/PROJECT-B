@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FinPulse Daily — Microservices Control Center</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Space Grotesk', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              gold: '#F59E0B',
+              emerald: '#10B981',
+              rose: '#E11D48',
+              navy: '#0F172A',
+              card: '#131B2E',
+              border: '#1E293B',
+              dark: '#0B0F19'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Space Grotesk', sans-serif; background-color: #0B0F19; color: #F1F5F9; }
+    .glass-card { background: rgba(19, 27, 46, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(30, 41, 59, 0.8); }
+    .glass-card-hover { transition: all 0.2s ease; }
+    .glass-card-hover:hover { border-color: rgba(245, 158, 11, 0.4); transform: translateY(-2px); }
+    .glow-gold { box-shadow: 0 0 20px rgba(245, 158, 11, 0.15); }
+    .glow-emerald { box-shadow: 0 0 20px rgba(16, 185, 129, 0.15); }
+    .glow-rose { box-shadow: 0 0 20px rgba(225, 29, 72, 0.15); }
+    .active-tab { background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #000; font-weight: 700; }
+  </style>
+</head>
+<body class="min-h-screen pb-16">
+
+  <!-- Top Navbar -->
+  <header class="border-b border-brand-border bg-brand-navy/90 sticky top-0 z-50 backdrop-blur-md px-6 py-4">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold text-xl shadow-lg">
+          <i class="fa-solid fa-chart-candlestick"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            FINPULSE <span class="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/30">MICROSERVICES v2.1</span>
+          </h1>
+          <p class="text-xs text-slate-400">Institutional Market Intelligence & Automated Visual Publisher</p>
+        </div>
+      </div>
+
+      <!-- System Status & Quick Actions -->
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>6 MICROSERVICES ACTIVE</span>
+        </div>
+        <a href="/docs" target="_blank" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-code"></i> Swagger API
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Live Market Ticker Ribbon -->
+  <section class="border-b border-brand-border bg-slate-950/60 px-6 py-3">
+    <div id="tickerRibbon" class="max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
+      <div class="bg-brand-card p-2.5 rounded-lg border border-brand-border flex items-center justify-between">
+        <span class="text-slate-400">NIFTY 50</span>
+        <span id="niftySpot" class="font-bold text-white">Loading...</span>
+      </div>
+      <div class="bg-brand-card p-2.5 rounded-lg border border-brand-border flex items-center justify-between">
+        <span class="text-slate-400">SENSEX</span>
+        <span id="sensexSpot" class="font-bold text-white">Loading...</span>
+      </div>
+      <div class="bg-brand-card p-2.5 rounded-lg border border-brand-border flex items-center justify-between">
+        <span class="text-slate-400">BANK NIFTY</span>
+        <span id="bankSpot" class="font-bold text-white">Loading...</span>
+      </div>
+      <div class="bg-brand-card p-2.5 rounded-lg border border-brand-border flex items-center justify-between">
+        <span class="text-slate-400">INDIA VIX</span>
+        <span id="vixSpot" class="font-bold text-white">Loading...</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-6 pt-8">
+
+    <!-- Tab Navigation -->
+    <div class="flex items-center gap-2 p-1.5 bg-brand-card rounded-2xl border border-brand-border w-fit mb-8 max-w-full overflow-x-auto">
+      <button onclick="switchTab('post1')" id="tabBtn_post1" class="active-tab px-5 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2">
+        <i class="fa-solid fa-fire"></i> Post #1: Daily Market Intelligence
+      </button>
+      <button onclick="switchTab('post2')" id="tabBtn_post2" class="text-slate-400 hover:text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2">
+        <i class="fa-solid fa-crosshairs"></i> Post #2: NIFTY 50 Prediction & Technicals
+      </button>
+      <button onclick="switchTab('news')" id="tabBtn_news" class="text-slate-400 hover:text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2">
+        <i class="fa-solid fa-newspaper"></i> 24h Stock News Engine
+      </button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- TAB 1: DAILY MARKET INTELLIGENCE (POST #1) -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <div id="view_post1" class="space-y-8">
+      
+      <!-- Top Metrics & Generation Action -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- FII / DII Flows Card -->
+        <div class="glass-card p-6 rounded-2xl lg:col-span-2">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-building-columns text-amber-400"></i> NSE FII / DII Institutional Cash Net
+            </h2>
+            <span id="fiiDiiDate" class="text-xs font-mono text-slate-400">--</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 font-mono">
+            <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+              <span class="text-xs text-slate-400 block mb-1">FII / FPI Net Flow</span>
+              <span id="fiiNetVal" class="text-lg font-bold text-rose-400">--</span>
+            </div>
+            <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+              <span class="text-xs text-slate-400 block mb-1">DII Domestic Net Flow</span>
+              <span id="diiNetVal" class="text-lg font-bold text-emerald-400">--</span>
+            </div>
+            <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+              <span class="text-xs text-slate-400 block mb-1">Combined Net Balance</span>
+              <span id="totalNetVal" class="text-lg font-bold text-white">--</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between text-xs text-slate-400 bg-slate-900/40 p-3 rounded-xl">
+            <span>Market Bias: <strong id="marketBiasBadge" class="text-amber-400">BULLISH</strong></span>
+            <span>Feed: <strong class="text-slate-300">NSE India Official Real-Time API</strong></span>
+          </div>
+        </div>
+
+        <!-- 1-Click Generator Box -->
+        <div class="glass-card p-6 rounded-2xl flex flex-col justify-between border-amber-500/20 glow-gold">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">Post #1 Generator</span>
+              <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 text-xs font-mono">4 SLIDES</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">Daily Market Carousel</h3>
+            <p class="text-xs text-slate-400 mb-4">
+              Fetches live indices, cash flows, curates breaking catalysts, and compiles 4 1080×1080 JPEG slides.
+            </p>
+          </div>
+
+          <div class="space-y-2">
+            <button onclick="generatePost1()" id="genPost1Btn" class="w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm shadow-lg transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Generate 4-Slide Carousel
+            </button>
+            <button onclick="publishPost1()" id="pubPost1Btn" class="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs border border-slate-700 transition flex items-center justify-center gap-2">
+              <i class="fa-brands fa-instagram text-pink-400"></i> Publish to @finpulse.daily
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide Preview Carousel for Post 1 -->
+      <div id="post1PreviewSection" class="glass-card p-6 rounded-2xl hidden">
+        <div class="flex items-center justify-between mb-6 pb-4 border-b border-brand-border">
+          <div>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-images text-amber-400"></i> Generated 4-Slide Market Carousel
+            </h3>
+            <p class="text-xs text-slate-400">Ready for publication to Instagram @finpulse.daily (1080×1080 High-Res JPEGs)</p>
+          </div>
+          <span class="px-3 py-1 bg-emerald-950/60 text-emerald-400 border border-emerald-500/30 text-xs rounded-full font-mono font-bold">
+            4 SLIDES READY
+          </span>
+        </div>
+
+        <div id="post1SlidesContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <!-- Slide cards injected via JS -->
+        </div>
+
+        <!-- Generated Caption Box -->
+        <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-800">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-comment-dots text-amber-400"></i> Instagram Caption & Hashtags
+            </span>
+            <button onclick="copyCaption('post1CaptionText')" class="text-xs text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1">
+              <i class="fa-regular fa-copy"></i> Copy Caption
+            </button>
+          </div>
+          <textarea id="post1CaptionText" rows="5" class="w-full bg-slate-950 text-xs font-mono p-3 rounded-lg border border-slate-800 text-slate-300 focus:outline-none focus:border-amber-500/50" readonly></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- TAB 2: NIFTY 50 PREDICTION & TECHNICALS (POST #2) -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <div id="view_post2" class="space-y-8 hidden">
+      
+      <!-- Top Technical Scorecard -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Technical Indicators Box -->
+        <div class="glass-card p-6 rounded-2xl lg:col-span-2">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-chart-line text-emerald-400"></i> NIFTY 50 Technical Blueprint
+            </h2>
+            <span id="niftyTrendBadge" class="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-400 text-xs font-mono font-bold">CALCULATING...</span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4 font-mono text-center">
+            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+              <span class="text-xs text-slate-400 block mb-1">R1 Resistance</span>
+              <span id="techR1" class="text-base font-bold text-rose-400">--</span>
+            </div>
+            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+              <span class="text-xs text-slate-400 block mb-1">Pivot Point</span>
+              <span id="techPivot" class="text-base font-bold text-amber-400">--</span>
+            </div>
+            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+              <span class="text-xs text-slate-400 block mb-1">S1 Support</span>
+              <span id="techS1" class="text-base font-bold text-emerald-400">--</span>
+            </div>
+            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+              <span class="text-xs text-slate-400 block mb-1">RSI (14-Period)</span>
+              <span id="techRsi" class="text-base font-bold text-white">--</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono bg-slate-900/40 p-3 rounded-xl border border-slate-800/60">
+            <div>20 EMA: <strong id="techEma20" class="text-slate-200">--</strong></div>
+            <div>50 SMA: <strong id="techSma50" class="text-slate-200">--</strong></div>
+            <div>Put-Call Ratio (PCR): <strong id="techPcr" class="text-amber-400">--</strong></div>
+          </div>
+        </div>
+
+        <!-- 1-Click Prediction Post Generator -->
+        <div class="glass-card p-6 rounded-2xl flex flex-col justify-between border-emerald-500/20 glow-emerald">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Post #2 Generator</span>
+              <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-xs font-mono">4 SLIDES</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">Nifty 50 Prediction Post</h3>
+            <p class="text-xs text-slate-400 mb-4">
+              Computes technical indicators, Option Chain PCR, and builds institutional trade playbooks (Plan A & B).
+            </p>
+          </div>
+
+          <div class="space-y-2">
+            <button onclick="generatePost2()" id="genPost2Btn" class="w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm shadow-lg transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Prediction Carousel
+            </button>
+            <button onclick="publishPost2()" id="pubPost2Btn" class="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs border border-slate-700 transition flex items-center justify-center gap-2">
+              <i class="fa-brands fa-instagram text-pink-400"></i> Publish to @finpulse.daily
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide Preview Carousel for Post 2 -->
+      <div id="post2PreviewSection" class="glass-card p-6 rounded-2xl hidden">
+        <div class="flex items-center justify-between mb-6 pb-4 border-b border-brand-border">
+          <div>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-images text-emerald-400"></i> Generated Nifty 50 Prediction Carousel
+            </h3>
+            <p class="text-xs text-slate-400">Target Range, Key Pivots, PCR Breakdown & Tactical Trade Plan</p>
+          </div>
+          <span class="px-3 py-1 bg-emerald-950/60 text-emerald-400 border border-emerald-500/30 text-xs rounded-full font-mono font-bold">
+            4 SLIDES READY
+          </span>
+        </div>
+
+        <div id="post2SlidesContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <!-- Slide cards injected via JS -->
+        </div>
+
+        <!-- Generated Caption Box -->
+        <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-800">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-comment-dots text-emerald-400"></i> Prediction Instagram Caption & Playbook
+            </span>
+            <button onclick="copyCaption('post2CaptionText')" class="text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1">
+              <i class="fa-regular fa-copy"></i> Copy Caption
+            </button>
+          </div>
+          <textarea id="post2CaptionText" rows="5" class="w-full bg-slate-950 text-xs font-mono p-3 rounded-lg border border-slate-800 text-slate-300 focus:outline-none focus:border-emerald-500/50" readonly></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- TAB 3: 24-HOUR STOCK NEWS ENGINE -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <div id="view_news" class="space-y-6 hidden">
+      
+      <!-- Search Box -->
+      <div class="glass-card p-6 rounded-2xl">
+        <h2 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
+          <i class="fa-solid fa-magnifying-glass text-amber-400"></i> 24-Hour Stock News Engine
+        </h2>
+        <p class="text-xs text-slate-400 mb-4">
+          Real-time, zero-rate-limit news engine fetching stories from the past 24 hours across top financial media.
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-3">
+          <input type="text" id="stockTickerInput" value="RELIANCE" placeholder="Enter stock ticker (e.g. RELIANCE, TCS, ZOMATO, NVDA)" class="flex-1 bg-slate-900 text-white font-mono text-sm px-4 py-3 rounded-xl border border-slate-700 focus:outline-none focus:border-amber-400">
+          <button onclick="searchStockNews()" id="searchNewsBtn" class="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm rounded-xl transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-bolt"></i> Fetch 24h News
+          </button>
+        </div>
+
+        <!-- Quick Tickers -->
+        <div class="flex items-center gap-2 mt-4 text-xs font-mono text-slate-400 overflow-x-auto pb-1">
+          <span>Popular:</span>
+          <button onclick="quickSearch('RELIANCE')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-300">RELIANCE</button>
+          <button onclick="quickSearch('TCS')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-300">TCS</button>
+          <button onclick="quickSearch('HDFCBANK')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-300">HDFCBANK</button>
+          <button onclick="quickSearch('ZOMATO')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-300">ZOMATO</button>
+          <button onclick="quickSearch('TATAMOTORS')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-300">TATAMOTORS</button>
+          <button onclick="quickSearch('NVDA')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-300">NVDA</button>
+        </div>
+      </div>
+
+      <!-- Search Results Box -->
+      <div id="newsResultsContainer" class="space-y-3">
+        <!-- News items injected via JS -->
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Image Modal for Fullscreen Preview -->
+  <div id="imageModal" class="fixed inset-0 z-50 bg-black/90 hidden flex items-center justify-center p-4 backdrop-blur-sm" onclick="closeImageModal()">
+    <div class="max-w-3xl max-h-[90vh] relative" onclick="event.stopPropagation()">
+      <button onclick="closeImageModal()" class="absolute -top-4 -right-4 w-10 h-10 rounded-full bg-slate-800 text-white font-bold flex items-center justify-center hover:bg-slate-700 border border-slate-600">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <img id="modalImg" src="" alt="Slide Preview" class="max-h-[85vh] rounded-2xl shadow-2xl border border-slate-700">
+    </div>
+  </div>
+
+  <script>
+    // ── Navigation Tab Switcher ──
+    function switchTab(tabId) {
+      const tabs = ['post1', 'post2', 'news'];
+      tabs.forEach(t => {
+        const view = document.getElementById('view_' + t);
+        const btn = document.getElementById('tabBtn_' + t);
+        if (t === tabId) {
+          view.classList.remove('hidden');
+          btn.classList.add('active-tab');
+          btn.classList.remove('text-slate-400');
+        } else {
+          view.classList.add('hidden');
+          btn.classList.remove('active-tab');
+          btn.classList.add('text-slate-400');
+        }
+      });
+    }
+
+    // ── Load Market Tickers & Technical Data on Init ──
+    async function loadInitialData() {
+      try {
+        const [indicesRes, fiiRes, techRes] = await Promise.all([
+          fetch('/api/v1/market/indices').then(r => r.json()),
+          fetch('/api/v1/market/fii-dii').then(r => r.json()),
+          fetch('/api/v1/technical/nifty').then(r => r.json())
+        ]);
+
+        // Ribbon
+        if (indicesRes.nifty) {
+          document.getElementById('niftySpot').innerText = `${indicesRes.nifty.formatted_price} (${indicesRes.nifty.formatted_change})`;
+          document.getElementById('niftySpot').className = `font-bold ${indicesRes.nifty.is_positive ? 'text-emerald-400' : 'text-rose-400'}`;
+        }
+        if (indicesRes.sensex) {
+          document.getElementById('sensexSpot').innerText = `${indicesRes.sensex.formatted_price} (${indicesRes.sensex.formatted_change})`;
+          document.getElementById('sensexSpot').className = `font-bold ${indicesRes.sensex.is_positive ? 'text-emerald-400' : 'text-rose-400'}`;
+        }
+        if (indicesRes.banknifty) {
+          document.getElementById('bankSpot').innerText = `${indicesRes.banknifty.formatted_price} (${indicesRes.banknifty.formatted_change})`;
+          document.getElementById('bankSpot').className = `font-bold ${indicesRes.banknifty.is_positive ? 'text-emerald-400' : 'text-rose-400'}`;
+        }
+        if (indicesRes.vix) {
+          document.getElementById('vixSpot').innerText = `${indicesRes.vix.price.toFixed(2)} (${indicesRes.vix.formatted_change})`;
+        }
+
+        // FII / DII
+        if (fiiRes.fii) {
+          document.getElementById('fiiDiiDate').innerText = `Date: ${fiiRes.date}`;
+          document.getElementById('fiiNetVal').innerText = fiiRes.fii.formatted_net;
+          document.getElementById('fiiNetVal').className = `text-lg font-bold ${fiiRes.fii.net > 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+          document.getElementById('diiNetVal').innerText = fiiRes.dii.formatted_net;
+          document.getElementById('diiNetVal').className = `text-lg font-bold ${fiiRes.dii.net > 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+          document.getElementById('totalNetVal').innerText = fiiRes.formatted_total_net;
+          document.getElementById('marketBiasBadge').innerText = fiiRes.sentiment;
+        }
+
+        // Technicals
+        if (techRes.technical) {
+          const t = techRes.technical;
+          document.getElementById('niftyTrendBadge').innerText = t.trend;
+          document.getElementById('techR1').innerText = t.pivots.r1.toLocaleString();
+          document.getElementById('techPivot').innerText = t.pivots.pivot.toLocaleString();
+          document.getElementById('techS1').innerText = t.pivots.s1.toLocaleString();
+          document.getElementById('techRsi').innerText = t.oscillators.rsi_14;
+          document.getElementById('techEma20').innerText = t.moving_averages.ema_20.toLocaleString();
+          document.getElementById('techSma50').innerText = t.moving_averages.sma_50.toLocaleString();
+          document.getElementById('techPcr').innerText = `${techRes.derivatives.pcr} (${techRes.derivatives.pcr_bias})`;
+        }
+      } catch (e) {
+        console.error("Initial data fetch error:", e);
+      }
+    }
+
+    // ── Post 1 Generator ──
+    async function generatePost1() {
+      const btn = document.getElementById('genPost1Btn');
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Rendering 4 Slides...`;
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/v1/posts/daily-market-post', { method: 'POST' });
+        const data = await res.json();
+
+        if (data.success) {
+          renderSlides('post1SlidesContainer', data.slides);
+          document.getElementById('post1PreviewSection').classList.remove('hidden');
+          document.getElementById('post1CaptionText').value = `🔥 D-Street Daily Intelligence • Live Nifty & Sensex Scorecard\n\n📊 Full Institutional FII/DII net flows and sector radar in slides!\n\n#FinPulse #Nifty50 #Sensex #StockMarketIndia`;
+          btn.innerHTML = `<i class="fa-solid fa-check"></i> Generated Successfully!`;
+        }
+      } catch (e) {
+        alert('Error generating Post 1: ' + e);
+        btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> Generate 4-Slide Carousel`;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // ── Post 2 Generator ──
+    async function generatePost2() {
+      const btn = document.getElementById('genPost2Btn');
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Calculating & Rendering...`;
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/v1/posts/nifty-prediction-post', { method: 'POST' });
+        const data = await res.json();
+
+        if (data.success) {
+          renderSlides('post2SlidesContainer', data.slides);
+          document.getElementById('post2PreviewSection').classList.remove('hidden');
+          document.getElementById('post2CaptionText').value = `🎯 NIFTY 50 PREDICTION & TECHNICAL BLUEPRINT 🚀\n\nRange: ${data.model.prediction.expected_trading_range}\nTrend: ${data.model.prediction.predicted_trend}\n\nSwipe to see complete Supports, Resistances, Option Chain PCR & Tactical Trade Plan (Plan A & B)!\n\n#Nifty50 #NiftyPrediction #TechnicalAnalysis #TradingStrategy`;
+          btn.innerHTML = `<i class="fa-solid fa-check"></i> Generated Successfully!`;
+        }
+      } catch (e) {
+        alert('Error generating Post 2: ' + e);
+        btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> Generate Prediction Carousel`;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function renderSlides(containerId, slides) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      slides.forEach((path, idx) => {
+        const filename = path.split('/').pop();
+        const imageUrl = `/images/${filename}`;
+        const card = document.createElement('div');
+        card.className = "bg-slate-900 rounded-xl overflow-hidden border border-slate-800 glass-card-hover cursor-pointer group";
+        card.onclick = () => openImageModal(imageUrl);
+        card.innerHTML = `
+          <div class="relative aspect-square overflow-hidden bg-slate-950">
+            <img src="${imageUrl}" alt="Slide ${idx+1}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+            <div class="absolute top-2 left-2 px-2 py-1 bg-black/70 backdrop-blur rounded text-[10px] font-mono text-amber-400 font-bold">
+              SLIDE ${idx+1}
+            </div>
+            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
+              <i class="fa-solid fa-magnifying-glass-plus text-xl"></i>
+            </div>
+          </div>
+          <div class="p-2.5 flex items-center justify-between text-xs text-slate-400 font-mono">
+            <span>Slide ${idx+1}</span>
+            <a href="${imageUrl}" download="${filename}" onclick="event.stopPropagation()" class="text-amber-400 hover:text-amber-300">
+              <i class="fa-solid fa-download"></i>
+            </a>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // ── Stock News Search ──
+    async function searchStockNews() {
+      const ticker = document.getElementById('stockTickerInput').value.trim().toUpperCase();
+      if (!ticker) return;
+      const btn = document.getElementById('searchNewsBtn');
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Fetching...`;
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(`/api/v1/news/stock/${ticker}?limit=6`);
+        const data = await res.json();
+        const container = document.getElementById('newsResultsContainer');
+        container.innerHTML = '';
+
+        if (!data.items || data.items.length === 0) {
+          container.innerHTML = `<div class="glass-card p-6 rounded-2xl text-center text-slate-400">No news found for ${ticker} in the past 24 hours.</div>`;
+          return;
+        }
+
+        data.items.forEach((item, idx) => {
+          const card = document.createElement('div');
+          card.className = "glass-card p-4 rounded-xl flex items-start justify-between gap-4 glass-card-hover";
+          card.innerHTML = `
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono text-[10px] font-bold">${item.source_name}</span>
+                <span class="text-slate-400 text-xs">${item.published_at}</span>
+              </div>
+              <h4 class="text-sm font-semibold text-white hover:text-amber-400 transition">
+                <a href="${item.url}" target="_blank">${item.title}</a>
+              </h4>
+            </div>
+            <a href="${item.url}" target="_blank" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold shrink-0">
+              Read <i class="fa-solid fa-arrow-up-right-from-square text-[10px] ml-1"></i>
+            </a>
+          `;
+          container.appendChild(card);
+        });
+      } catch (e) {
+        alert('Error fetching news: ' + e);
+      } finally {
+        btn.innerHTML = `<i class="fa-solid fa-bolt"></i> Fetch 24h News`;
+        btn.disabled = false;
+      }
+    }
+
+    function quickSearch(ticker) {
+      document.getElementById('stockTickerInput').value = ticker;
+      searchStockNews();
+    }
+
+    // ── Image Modal ──
+    function openImageModal(src) {
+      document.getElementById('modalImg').src = src;
+      document.getElementById('imageModal').classList.remove('hidden');
+    }
+    function closeImageModal() {
+      document.getElementById('imageModal').classList.add('hidden');
+    }
+
+    function copyCaption(id) {
+      const copyText = document.getElementById(id);
+      copyText.select();
+      navigator.clipboard.writeText(copyText.value);
+      alert('Caption copied to clipboard!');
+    }
+
+    window.onload = () => {
+      loadInitialData();
+      searchStockNews();
+    };
+  </script>
+</body>
+</html>

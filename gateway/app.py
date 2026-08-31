@@ -5,6 +5,8 @@ gateway/app.py — Central API Gateway Orchestrating All Microservices
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
+from pathlib import Path
 from common.config import settings
 
 # Microservice Routers
@@ -30,6 +32,17 @@ app.add_middleware(
 )
 
 app.mount("/images", StaticFiles(directory=str(settings.OUTPUT_DIR)), name="images")
+
+# Serve Modern Web Dashboard UI
+UI_FILE = Path(__file__).resolve().parent / "ui" / "index.html"
+
+@app.get("/", response_class=HTMLResponse, tags=["Dashboard UI"])
+@app.get("/ui", response_class=HTMLResponse, tags=["Dashboard UI"])
+def get_dashboard_ui():
+    """Serves the FinPulse Microservices Control Center Web Dashboard."""
+    if UI_FILE.exists():
+        return HTMLResponse(content=UI_FILE.read_text(encoding="utf-8"))
+    return HTMLResponse(content="<h1>FinPulse UI file not found</h1>", status_code=404)
 
 # Mount Individual Microservices
 app.include_router(market_router)
