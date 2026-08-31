@@ -10,7 +10,7 @@ from common.config import settings
 from common.design_tokens import (
     SIZE, C_RED_TOP, C_RED_BOT, C_BLUE_TOP, C_BLUE_BOT, C_TEAL_TOP, C_TEAL_BOT,
     C_GOLD_TOP, C_GOLD_BOT, C_EMERALD, C_AMBER, C_ROSE, C_CREAM, C_DARK, C_MAROON,
-    C_WHITE, C_DIVIDER, get_font, create_gradient_canvas, add_architectural_silhouettes,
+    C_WHITE, C_DIVIDER, get_font, create_cinematic_photo_canvas,
     draw_bull_motif, draw_bear_motif, draw_header
 )
 
@@ -31,9 +31,8 @@ def render_market_impact_carousel(indices: Dict[str, Any], fii_dii: Dict[str, An
     elif pct <= -1.0: hook_main, hook_sub = "MARKET UNDER PRESSURE!", f"SENSEX TUMBLES {abs(sensex['change']):.0f}+ PTS AS BEARS TAKE CONTROL"
     else: hook_main, hook_sub = "TIGHT ROPE ON D-STREET!", f"NIFTY RANGEBOUND • KEY BREAKOUT AHEAD"
 
-    # Slide 1: Indices
-    img1 = create_gradient_canvas(C_RED_TOP, C_RED_BOT)
-    add_architectural_silhouettes(img1, (255, 200, 100), 0.18)
+    # Slide 1: Indices (Real BSE Dalal Street Photo Atmosphere)
+    img1 = create_cinematic_photo_canvas("bse_dalal_street.jpg", C_RED_TOP, C_RED_BOT, 0.82)
     d1 = ImageDraw.Draw(img1)
     draw_header(img1, d1, handle)
 
@@ -69,9 +68,8 @@ def render_market_impact_carousel(indices: Dict[str, Any], fii_dii: Dict[str, An
     img1.save(p1, "JPEG", quality=95)
     slides.append(p1)
 
-    # Slide 2: Cash Inflows
-    img2 = create_gradient_canvas(C_BLUE_TOP, C_BLUE_BOT)
-    add_architectural_silhouettes(img2, (56, 189, 248), 0.15)
+    # Slide 2: Cash Inflows (Real Trading Desk Charts Atmosphere)
+    img2 = create_cinematic_photo_canvas("trading_desk_charts.jpg", C_BLUE_TOP, C_BLUE_BOT, 0.82)
     d2 = ImageDraw.Draw(img2)
     draw_header(img2, d2, handle)
 
@@ -106,9 +104,8 @@ def render_market_impact_carousel(indices: Dict[str, Any], fii_dii: Dict[str, An
     img2.save(p2, "JPEG", quality=95)
     slides.append(p2)
 
-    # Slide 3: Sentiments
-    img3 = create_gradient_canvas(C_TEAL_TOP, C_TEAL_BOT)
-    add_architectural_silhouettes(img3, (34, 211, 238), 0.16)
+    # Slide 3: Sentiments (Real Candlestick Chart Atmosphere)
+    img3 = create_cinematic_photo_canvas("candlestick_screen.jpg", C_TEAL_TOP, C_TEAL_BOT, 0.82)
     d3 = ImageDraw.Draw(img3)
     draw_header(img3, d3, handle)
 
@@ -138,9 +135,8 @@ def render_market_impact_carousel(indices: Dict[str, Any], fii_dii: Dict[str, An
     img3.save(p3, "JPEG", quality=95)
     slides.append(p3)
 
-    # Slide 4: Major News
-    img4 = create_gradient_canvas(C_GOLD_TOP, C_GOLD_BOT)
-    add_architectural_silhouettes(img4, (254, 240, 138), 0.18)
+    # Slide 4: Major News (Real Wall Street NYSE Atmosphere)
+    img4 = create_cinematic_photo_canvas("wall_street_nyse.jpg", C_GOLD_TOP, C_GOLD_BOT, 0.82)
     d4 = ImageDraw.Draw(img4)
     draw_header(img4, d4, handle)
 

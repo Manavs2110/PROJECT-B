@@ -56,6 +56,36 @@ def create_gradient_canvas(color_top: Tuple[int, int, int], color_bottom: Tuple[
     return Image.composite(bot_img, top_img, mask)
 
 
+def create_cinematic_photo_canvas(photo_name: str, tint_top: Tuple[int, int, int], tint_bottom: Tuple[int, int, int], tint_opacity: float = 0.82) -> Image.Image:
+    """
+    Creates a rich cinematic background canvas by combining a real photo (BSE, Wall St, Trading Desk, Candlesticks)
+    with a dual-tone tinted gradient overlay for maximum readability and visual aesthetic.
+    """
+    from PIL import ImageFilter, ImageOps
+    bg_path = settings.ASSETS_DIR / "backgrounds" / photo_name
+    
+    gradient_overlay = create_gradient_canvas(tint_top, tint_bottom).convert("RGBA")
+
+    if bg_path.exists():
+        try:
+            raw_img = Image.open(bg_path).convert("RGB")
+            # Center crop to 1080x1080
+            photo = ImageOps.fit(raw_img, (SIZE, SIZE), Image.Resampling.LANCZOS)
+            # Apply subtle atmosphere blur for readability
+            photo = photo.filter(ImageFilter.GaussianBlur(radius=1.8)).convert("RGBA")
+            
+            # Blend gradient scrim on top of the real financial photo
+            blended = Image.blend(photo, gradient_overlay, tint_opacity)
+            return blended.convert("RGB")
+        except Exception as e:
+            print(f"⚠️ Photo background blend fallback: {e}")
+
+    # Fallback to gradient canvas with architectural silhouettes
+    im = create_gradient_canvas(tint_top, tint_bottom)
+    add_architectural_silhouettes(im, (255, 255, 255), 0.15)
+    return im
+
+
 def add_architectural_silhouettes(im: Image.Image, accent: Tuple[int, int, int], opacity: float = 0.16):
     """Draws BSE Phiroze Towers & Wall St exchange silhouettes + candlestick watermark."""
     overlay = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
