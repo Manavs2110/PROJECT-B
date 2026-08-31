@@ -7,7 +7,7 @@ import sys
 import unittest
 sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
 
-from common import settings, get_font, create_cinematic_photo_canvas
+from common import settings, get_font, create_photo_editorial_canvas
 from services.market_data_service import fetch_market_indices, fetch_fii_dii_cash_flows
 from services.news_curation_service import fetch_breaking_market_news, fetch_stock_news_24h
 from services.technical_analysis_service import compute_nifty_technicals, compute_option_metrics
@@ -18,7 +18,7 @@ class TestMicroservicesArchitecture(unittest.TestCase):
 
     def test_common_module(self):
         self.assertIsNotNone(settings.OUTPUT_DIR)
-        canvas = create_cinematic_photo_canvas("bse_dalal_street.jpg")
+        canvas = create_photo_editorial_canvas("bse_dalal_street.jpg")
         self.assertEqual(canvas.size, (1080, 1080))
 
     def test_market_data_service(self):

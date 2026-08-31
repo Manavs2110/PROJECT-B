@@ -1,35 +1,28 @@
 """
-common/design_tokens.py — Elite Institutional Visual Design System & Glassmorphic Canvas
+common/design_tokens.py — Modern Photo-First Editorial Design System (Morning Brew / Bloomberg Style)
 """
 
 import os
-from typing import Tuple, List, Optional
+from typing import Tuple, Optional
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
 from common.config import settings
 
 SIZE = 1080
+PHOTO_HEIGHT = 620  # Top ~58% for high-res real photography/charts
 
-# Modern Institutional Color Palette
-COLOR_BG_DARK    = (11, 15, 25)       # #0B0F19 (Deep Slate Canvas)
-COLOR_WHITE      = (255, 255, 255)
-COLOR_OFFWHITE   = (241, 245, 249)   # #F1F5F9 (Text Primary)
-COLOR_MUTED      = (148, 163, 184)   # #94A3B8 (Text Secondary)
-COLOR_DARK_TEXT  = (15, 23, 42)
+# Modern Editorial Palette
+BG_DARK          = (11, 15, 25)       # #0B0F19 (Deep Obsidian Base)
+BG_CARD          = (18, 26, 44)       # #121A2C (Subtle Card Background)
+TEXT_WHITE       = (255, 255, 255)
+TEXT_MUTED       = (148, 163, 184)   # #94A3B8
+TEXT_DARK        = (15, 23, 42)
 
-# Vibrant Accent Colors
-COLOR_AMBER      = (245, 158, 11)    # #F59E0B (Electric Gold)
-COLOR_AMBER_BG   = (245, 158, 11, 40)
-COLOR_EMERALD    = (16, 185, 129)   # #10B981 (Neon Green)
-COLOR_EMERALD_BG = (16, 185, 129, 45)
-COLOR_ROSE       = (225, 29, 72)     # #E11D48 (Crimson Red)
-COLOR_ROSE_BG    = (225, 29, 72, 45)
-COLOR_CYAN       = (6, 182, 212)     # #06B6D4 (Cyan Blue)
+ACCENT_AMBER     = (245, 158, 11)    # #F59E0B
+ACCENT_EMERALD   = (16, 185, 129)   # #10B981
+ACCENT_ROSE      = (225, 29, 72)     # #E11D48
+ACCENT_CYAN      = (6, 182, 212)     # #06B6D4
 
-# Glassmorphism Card Colors (RGBA)
-GLASS_BG_DARK    = (15, 23, 42, 215)   # #0F172A with 84% opacity
-GLASS_BG_LIGHT   = (255, 255, 255, 240) # Bright contrast card
-GLASS_BORDER     = (51, 65, 85, 180)  # #334155
-GLASS_BORDER_HI  = (245, 158, 11, 180)
+BORDER_SUBTLE    = (30, 41, 59)
 
 
 def get_font(font_type: str, size: int) -> ImageFont.FreeTypeFont:
@@ -49,95 +42,61 @@ def get_font(font_type: str, size: int) -> ImageFont.FreeTypeFont:
     return ImageFont.load_default()
 
 
-def create_cinematic_photo_canvas(photo_name: str, vignette_color: Tuple[int, int, int] = (11, 15, 25), darken_factor: float = 0.55) -> Image.Image:
+def create_photo_editorial_canvas(photo_name: str, category_tag: str = "MARKET PULSE") -> Image.Image:
     """
-    Creates a full-bleed cinematic photographic canvas where the real financial photo
-    (BSE Dalal St, Wall St, Trading Desk, Candlesticks) is prominently visible,
-    with a dark gradient vignette for superior readability.
+    Builds a Photo-First Editorial Canvas:
+      • Top 58% (0 to 620px): High-res real photo/chart with seamless gradient blend at bottom.
+      • Top Left/Right: Sleek @finpulse.daily watermark & category pill.
+      • Bottom 42% (620 to 1080px): Deep obsidian panel for typography & stats.
     """
+    canvas = Image.new("RGB", (SIZE, SIZE), BG_DARK)
     bg_path = settings.ASSETS_DIR / "backgrounds" / photo_name
-    
+
     if bg_path.exists():
         try:
-            raw_img = Image.open(bg_path).convert("RGB")
-            photo = ImageOps.fit(raw_img, (SIZE, SIZE), Image.Resampling.LANCZOS)
+            raw = Image.open(bg_path).convert("RGB")
+            # Crop photo to fill top 640px
+            photo = ImageOps.fit(raw, (SIZE, 640), Image.Resampling.LANCZOS).convert("RGBA")
             
-            # Create Dark Gradient Vignette Overlay
-            overlay = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
-            odraw = ImageDraw.Draw(overlay)
+            # Bottom fade mask on photo
+            fade_mask = Image.new("L", (SIZE, 640), 255)
+            fdraw = ImageDraw.Draw(fade_mask)
+            for y in range(480, 640):
+                alpha = int(255 * (1 - ((y - 480) / 160)))
+                fdraw.line([(0, y), (SIZE, y)], fill=alpha)
             
-            # Top-to-bottom dark gradient + edge vignette
-            for y in range(SIZE):
-                # Top header darken
-                if y < 220:
-                    alpha = int(210 - (y / 220) * 80)
-                # Bottom cards darken
-                else:
-                    alpha = int(140 + ((y - 220) / (SIZE - 220)) * 95)
-                odraw.line([(0, y), (SIZE, y)], fill=(vignette_color[0], vignette_color[1], vignette_color[2], min(245, alpha)))
-
-            # Composite photo with vignette
-            result = Image.alpha_composite(photo.convert("RGBA"), overlay)
-            return result.convert("RGB")
+            photo.putalpha(fade_mask)
+            canvas.paste(photo, (0, 0), photo)
         except Exception as e:
-            print(f"⚠️ Photo canvas error: {e}")
+            print(f"⚠️ Photo load error: {e}")
 
-    # Fallback to dark canvas
-    return Image.new("RGB", (SIZE, SIZE), COLOR_BG_DARK)
-
-
-def draw_glass_card(im: Image.Image, box: Tuple[int, int, int, int], radius: int = 24, bg_color: Tuple[int, int, int, int] = GLASS_BG_DARK, border_color: Tuple[int, int, int, int] = GLASS_BORDER, border_width: int = 2):
-    """Draws a sleek translucent glassmorphism card with rounded corners and high-contrast border."""
-    overlay = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
-    d = ImageDraw.Draw(overlay)
-    d.rounded_rectangle(box, radius=radius, fill=bg_color, outline=border_color, width=border_width)
-    im.paste(Image.alpha_composite(im.convert("RGBA"), overlay).convert("RGB"))
-
-
-def draw_header_bar(im: Image.Image, handle: str = "@finpulse.daily", category_badge: str = "MARKET INTELLIGENCE"):
-    """Renders top institutional header with FinPulse emblem badge and category pill."""
-    overlay = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
-    d = ImageDraw.Draw(overlay)
+    # Top Navigation Glass Pill
+    top_overlay = Image.new("RGBA", (SIZE, 100), (0, 0, 0, 0))
+    tdraw = ImageDraw.Draw(top_overlay)
     
-    # Top Glass Pill
-    d.rounded_rectangle([(SIZE // 2 - 240, 32), (SIZE // 2 + 240, 78)], radius=23, fill=(15, 23, 42, 220), outline=(245, 158, 11, 140), width=1)
+    tdraw.rounded_rectangle([(40, 28), (SIZE - 40, 76)], radius=24, fill=(11, 15, 25, 210), outline=(51, 65, 85, 160), width=1)
     
-    # Badge
+    # Badge Icon
     badge_path = settings.ASSETS_DIR / "finpulse_badge.png"
     if badge_path.exists():
         try:
             badge = Image.open(badge_path).convert("RGBA").resize((32, 32), Image.Resampling.LANCZOS)
-            overlay.paste(badge, (SIZE // 2 - 220, 39), badge)
+            top_overlay.paste(badge, (56, 36), badge)
         except Exception:
             pass
-            
-    d.text((SIZE // 2 - 170, 55), handle, fill=COLOR_OFFWHITE, font=get_font("din_alt", 22), anchor="lm")
-    d.text((SIZE // 2 + 220, 55), category_badge, fill=COLOR_AMBER, font=get_font("impact", 20), anchor="rm")
+
+    tdraw.text((98, 52), "@finpulse.daily", fill=TEXT_WHITE, font=get_font("din_alt", 22), anchor="lm")
+    tdraw.text((SIZE - 60, 52), category_tag.upper(), fill=ACCENT_AMBER, font=get_font("impact", 20), anchor="rm")
     
-    im.paste(Image.alpha_composite(im.convert("RGBA"), overlay).convert("RGB"))
+    canvas.paste(Image.alpha_composite(canvas.crop((0, 0, SIZE, 100)).convert("RGBA"), top_overlay).convert("RGB"), (0, 0))
+    return canvas
 
 
-def draw_bull_badge(im: Image.Image, cx: int, cy: int, size: int = 70):
-    """Draws a glowing neon emerald bull badge."""
-    overlay = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
-    d = ImageDraw.Draw(overlay)
-    r = size // 2
-    d.ellipse([(cx - r - 6, cy - r - 6), (cx + r + 6, cy + r + 6)], fill=(16, 185, 129, 60))
-    d.ellipse([(cx - r, cy - r), (cx + r, cy + r)], fill=(11, 15, 25, 240), outline=COLOR_EMERALD, width=3)
-    d.polygon([(cx - 16, cy - 8), (cx + 16, cy - 8), (cx + 10, cy + 16), (cx, cy + 22), (cx - 10, cy + 16)], fill=COLOR_EMERALD)
-    d.arc([(cx - 24, cy - 20), (cx - 8, cy - 4)], start=160, end=340, fill=COLOR_EMERALD, width=3)
-    d.arc([(cx + 8, cy - 20), (cx + 24, cy - 4)], start=200, end=380, fill=COLOR_EMERALD, width=3)
-    im.paste(Image.alpha_composite(im.convert("RGBA"), overlay).convert("RGB"))
-
-
-def draw_bear_badge(im: Image.Image, cx: int, cy: int, size: int = 70):
-    """Draws a glowing crimson roaring bear badge."""
-    overlay = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
-    d = ImageDraw.Draw(overlay)
-    r = size // 2
-    d.ellipse([(cx - r - 6, cy - r - 6), (cx + r + 6, cy + r + 6)], fill=(225, 29, 72, 60))
-    d.ellipse([(cx - r, cy - r), (cx + r, cy + r)], fill=(11, 15, 25, 240), outline=COLOR_ROSE, width=3)
-    d.ellipse([(cx - 20, cy - 18), (cx - 10, cy - 8)], fill=COLOR_ROSE)
-    d.ellipse([(cx + 10, cy - 18), (cx + 20, cy - 8)], fill=COLOR_ROSE)
-    d.ellipse([(cx - 18, cy - 12), (cx + 18, cy + 18)], fill=COLOR_ROSE)
-    im.paste(Image.alpha_composite(im.convert("RGBA"), overlay).convert("RGB"))
+def draw_stat_pill(d: ImageDraw.ImageDraw, box: Tuple[int, int, int, int], label: str, value: str, is_positive: bool = True):
+    """Draws a sleek, modern stat pill with label and highlighted value."""
+    color = ACCENT_EMERALD if is_positive else ACCENT_ROSE
+    d.rounded_rectangle(box, radius=12, fill=BG_CARD, outline=BORDER_SUBTLE, width=1)
+    # Left indicator notch
+    d.rounded_rectangle([(box[0], box[1]), (box[0] + 6, box[3])], radius=4, fill=color)
+    d.text((box[0] + 16, (box[1] + box[3]) // 2 - 12), label.upper(), fill=TEXT_MUTED, font=get_font("din_cond", 20))
+    d.text((box[0] + 16, (box[1] + box[3]) // 2 + 10), value, fill=color, font=get_font("impact", 24))
