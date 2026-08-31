@@ -482,7 +482,7 @@
       container.innerHTML = '';
       slides.forEach((path, idx) => {
         const filename = path.split('/').pop();
-        const imageUrl = `/images/${filename}`;
+        const imageUrl = `/images/${filename}?t=${Date.now()}`;
         const card = document.createElement('div');
         card.className = "bg-slate-900 rounded-xl overflow-hidden border border-slate-800 glass-card-hover cursor-pointer group";
         card.onclick = () => openImageModal(imageUrl);
