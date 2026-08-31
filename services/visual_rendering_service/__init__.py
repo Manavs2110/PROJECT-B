@@ -1,3 +1,4 @@
 from .renderer_market_impact import render_market_impact_carousel
 from .renderer_prediction import render_prediction_carousel
+from .renderer_engagement import render_engagement_slide
 from .api import router as render_router
