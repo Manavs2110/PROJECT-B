@@ -1,8 +1,7 @@
 from .config import settings
 from .models import MarketQuote, FiiDiiData, NewsItem, SectorImpact, PredictionPayload, PublishRequest
 from .design_tokens import (
-    SIZE, C_RED_TOP, C_RED_BOT, C_BLUE_TOP, C_BLUE_BOT, C_TEAL_TOP, C_TEAL_BOT,
-    C_GOLD_TOP, C_GOLD_BOT, C_EMERALD, C_AMBER, C_ROSE, C_CREAM, C_DARK, C_MAROON,
-    C_WHITE, C_DIVIDER, get_font, create_gradient_canvas, create_cinematic_photo_canvas,
-    add_architectural_silhouettes, draw_bull_motif, draw_bear_motif, draw_header
+    SIZE, COLOR_WHITE, COLOR_OFFWHITE, COLOR_MUTED, COLOR_AMBER, COLOR_EMERALD, COLOR_ROSE,
+    COLOR_CYAN, GLASS_BG_DARK, GLASS_BORDER, GLASS_BORDER_HI, get_font,
+    create_cinematic_photo_canvas, draw_glass_card, draw_header_bar, draw_bull_badge, draw_bear_badge
 )
