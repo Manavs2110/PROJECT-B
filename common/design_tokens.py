@@ -1,5 +1,5 @@
 """
-common/design_tokens.py — Modern Photo-First Editorial Design System (Morning Brew / Bloomberg Style)
+common/design_tokens.py — Full-Canvas Photographic Design System
 """
 
 import os
@@ -8,21 +8,24 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
 from common.config import settings
 
 SIZE = 1080
-PHOTO_HEIGHT = 620  # Top ~58% for high-res real photography/charts
 
-# Modern Editorial Palette
-BG_DARK          = (11, 15, 25)       # #0B0F19 (Deep Obsidian Base)
-BG_CARD          = (18, 26, 44)       # #121A2C (Subtle Card Background)
+# Colors
+BG_DARK          = (11, 15, 25)
+BG_GLASS         = (15, 23, 42, 205)  # 80% opacity translucent glass
+BG_GLASS_HI      = (20, 30, 55, 225)
+BG_CARD_ROW      = (15, 23, 42, 190)
+
 TEXT_WHITE       = (255, 255, 255)
-TEXT_MUTED       = (148, 163, 184)   # #94A3B8
+TEXT_MUTED       = (148, 163, 184)
 TEXT_DARK        = (15, 23, 42)
 
-ACCENT_AMBER     = (245, 158, 11)    # #F59E0B
-ACCENT_EMERALD   = (16, 185, 129)   # #10B981
-ACCENT_ROSE      = (225, 29, 72)     # #E11D48
-ACCENT_CYAN      = (6, 182, 212)     # #06B6D4
+ACCENT_AMBER     = (245, 158, 11)
+ACCENT_EMERALD   = (16, 185, 129)
+ACCENT_ROSE      = (225, 29, 72)
+ACCENT_CYAN      = (6, 182, 212)
 
-BORDER_SUBTLE    = (30, 41, 59)
+BORDER_GLASS     = (51, 65, 85, 170)
+BORDER_AMBER     = (245, 158, 11, 180)
 
 
 def get_font(font_type: str, size: int) -> ImageFont.FreeTypeFont:
@@ -42,12 +45,11 @@ def get_font(font_type: str, size: int) -> ImageFont.FreeTypeFont:
     return ImageFont.load_default()
 
 
-def create_photo_editorial_canvas(photo_name: str, category_tag: str = "MARKET PULSE") -> Image.Image:
+def create_full_background_canvas(photo_name: str, category_tag: str = "MARKET PULSE", tint_color: Tuple[int, int, int] = (11, 15, 25)) -> Image.Image:
     """
-    Builds a Photo-First Editorial Canvas:
-      • Top 58% (0 to 620px): High-res real photo/chart with seamless gradient blend at bottom.
-      • Top Left/Right: Sleek @finpulse.daily watermark & category pill.
-      • Bottom 42% (620 to 1080px): Deep obsidian panel for typography & stats.
+    Creates a full 1080x1080 photographic background canvas.
+    The photo fills the entire canvas with a rich atmospheric vignette/scrim
+    so the image is clearly visible across the whole slide while text is 100% readable.
     """
     canvas = Image.new("RGB", (SIZE, SIZE), BG_DARK)
     bg_path = settings.ASSETS_DIR / "backgrounds" / photo_name
@@ -55,48 +57,46 @@ def create_photo_editorial_canvas(photo_name: str, category_tag: str = "MARKET P
     if bg_path.exists():
         try:
             raw = Image.open(bg_path).convert("RGB")
-            # Crop photo to fill top 640px
-            photo = ImageOps.fit(raw, (SIZE, 640), Image.Resampling.LANCZOS).convert("RGBA")
+            photo = ImageOps.fit(raw, (SIZE, SIZE), Image.Resampling.LANCZOS).convert("RGBA")
             
-            # Bottom fade mask on photo
-            fade_mask = Image.new("L", (SIZE, 640), 255)
-            fdraw = ImageDraw.Draw(fade_mask)
-            for y in range(480, 640):
-                alpha = int(255 * (1 - ((y - 480) / 160)))
-                fdraw.line([(0, y), (SIZE, y)], fill=alpha)
+            # Atmospheric scrim overlay (darkens slightly while preserving chart/photo details)
+            scrim = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
+            sdraw = ImageDraw.Draw(scrim)
             
-            photo.putalpha(fade_mask)
-            canvas.paste(photo, (0, 0), photo)
+            for y in range(SIZE):
+                # Gradient opacity from 60% at top to 78% at bottom
+                alpha = int(145 + (y / SIZE) * 55)
+                sdraw.line([(0, y), (SIZE, y)], fill=(tint_color[0], tint_color[1], tint_color[2], alpha))
+            
+            canvas = Image.alpha_composite(photo, scrim).convert("RGB")
         except Exception as e:
-            print(f"⚠️ Photo load error: {e}")
+            print(f"⚠️ Canvas photo error: {e}")
 
-    # Top Navigation Glass Pill
-    top_overlay = Image.new("RGBA", (SIZE, 100), (0, 0, 0, 0))
+    # Top Header Pill
+    top_overlay = Image.new("RGBA", (SIZE, 110), (0, 0, 0, 0))
     tdraw = ImageDraw.Draw(top_overlay)
     
-    tdraw.rounded_rectangle([(40, 28), (SIZE - 40, 76)], radius=24, fill=(11, 15, 25, 210), outline=(51, 65, 85, 160), width=1)
+    tdraw.rounded_rectangle([(40, 28), (SIZE - 40, 78)], radius=25, fill=(11, 15, 25, 215), outline=(51, 65, 85, 180), width=1)
     
-    # Badge Icon
+    # FinPulse Logo Badge
     badge_path = settings.ASSETS_DIR / "finpulse_badge.png"
     if badge_path.exists():
         try:
             badge = Image.open(badge_path).convert("RGBA").resize((32, 32), Image.Resampling.LANCZOS)
-            top_overlay.paste(badge, (56, 36), badge)
+            top_overlay.paste(badge, (56, 37), badge)
         except Exception:
             pass
 
-    tdraw.text((98, 52), "@finpulse.daily", fill=TEXT_WHITE, font=get_font("din_alt", 22), anchor="lm")
-    tdraw.text((SIZE - 60, 52), category_tag.upper(), fill=ACCENT_AMBER, font=get_font("impact", 20), anchor="rm")
+    tdraw.text((98, 53), "@finpulse.daily", fill=TEXT_WHITE, font=get_font("din_alt", 22), anchor="lm")
+    tdraw.text((SIZE - 60, 53), category_tag.upper(), fill=ACCENT_AMBER, font=get_font("impact", 20), anchor="rm")
     
-    canvas.paste(Image.alpha_composite(canvas.crop((0, 0, SIZE, 100)).convert("RGBA"), top_overlay).convert("RGB"), (0, 0))
+    canvas.paste(Image.alpha_composite(canvas.crop((0, 0, SIZE, 110)).convert("RGBA"), top_overlay).convert("RGB"), (0, 0))
     return canvas
 
 
-def draw_stat_pill(d: ImageDraw.ImageDraw, box: Tuple[int, int, int, int], label: str, value: str, is_positive: bool = True):
-    """Draws a sleek, modern stat pill with label and highlighted value."""
-    color = ACCENT_EMERALD if is_positive else ACCENT_ROSE
-    d.rounded_rectangle(box, radius=12, fill=BG_CARD, outline=BORDER_SUBTLE, width=1)
-    # Left indicator notch
-    d.rounded_rectangle([(box[0], box[1]), (box[0] + 6, box[3])], radius=4, fill=color)
-    d.text((box[0] + 16, (box[1] + box[3]) // 2 - 12), label.upper(), fill=TEXT_MUTED, font=get_font("din_cond", 20))
-    d.text((box[0] + 16, (box[1] + box[3]) // 2 + 10), value, fill=color, font=get_font("impact", 24))
+def draw_glass_panel(im: Image.Image, box: Tuple[int, int, int, int], radius: int = 20, bg: Tuple[int, int, int, int] = BG_GLASS, border: Tuple[int, int, int, int] = BORDER_GLASS, border_width: int = 1):
+    """Draws a floating translucent glassmorphism container across the full-space canvas."""
+    overlay = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
+    d = ImageDraw.Draw(overlay)
+    d.rounded_rectangle(box, radius=radius, fill=bg, outline=border, width=border_width)
+    im.paste(Image.alpha_composite(im.convert("RGBA"), overlay).convert("RGB"))
