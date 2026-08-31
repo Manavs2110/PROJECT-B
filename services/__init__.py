@@ -1,10 +1,6 @@
-from .market_data_service import get_market_indices, get_fii_dii_cash_flows
-from .news_service import get_breaking_market_news, get_stock_news_24h
-from .sentiment_service import analyze_market_sentiment
-from .image_service import generate_4slide_carousel
-from .publisher_service import publish_to_instagram
-
-# Nifty 50 Prediction Microservice
-from .technical_analysis_service import fetch_nifty_technical_data
-from .nifty_prediction_service import generate_nifty_prediction_model
-from .prediction_image_service import generate_nifty_prediction_carousel
+from .market_data_service import fetch_market_indices, fetch_fii_dii_cash_flows, market_router
+from .news_curation_service import fetch_breaking_market_news, fetch_stock_news_24h, news_router
+from .technical_analysis_service import compute_nifty_technicals, compute_option_metrics, technical_router
+from .prediction_service import generate_prediction_model, prediction_router
+from .visual_rendering_service import render_market_impact_carousel, render_prediction_carousel, render_router
+from .publishing_service import publish_carousel_to_instagram, publish_router

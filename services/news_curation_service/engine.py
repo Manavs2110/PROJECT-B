@@ -1,5 +1,5 @@
 """
-news_service.py — Market Breaking News & 24h Stock News Microservice
+services/news_curation_service/engine.py — Market News & 24-Hour Stock News Engine
 """
 
 import urllib.request
@@ -8,11 +8,8 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from typing import List, Dict, Any
 
-def get_breaking_market_news(limit: int = 5) -> List[Dict[str, Any]]:
-    """
-    Fetches curated top breaking market news from leading financial news sources.
-    Filters out raw filings/duplicates.
-    """
+def fetch_breaking_market_news(limit: int = 5) -> List[Dict[str, Any]]:
+    """Fetches curated top breaking market catalysts."""
     url = "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVdZU0FtVnVHZ0pWVXlnQVAB?hl=en-IN&gl=IN&ceid=IN:en"
     headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"}
     
@@ -51,16 +48,13 @@ def get_breaking_market_news(limit: int = 5) -> List[Dict[str, Any]]:
     if not articles:
         articles = [
             {"title": "Global Markets Rebound as Yields Soften Ahead of Rate Decisions", "source_name": "Reuters", "url": "https://reuters.com", "published_at": "Today"},
-            {"title": "D-Street Eyes Institutional Buying as IT and Private Banks Outperform", "source_name": "The Economic Times", "url": "https://economictimes.indiatimes.com", "published_at": "Today"},
-            {"title": "Crude Oil Slips Below Key Supports, Easing Import Inflation Worries", "source_name": "Bloomberg", "url": "https://bloomberg.com", "published_at": "Today"}
+            {"title": "D-Street Eyes Institutional Buying as IT and Private Banks Outperform", "source_name": "The Economic Times", "url": "https://economictimes.indiatimes.com", "published_at": "Today"}
         ]
     return articles
 
 
-def get_stock_news_24h(ticker: str, limit: int = 5) -> Dict[str, Any]:
-    """
-    Fetches real-time stock news from the past 24 hours for any specific ticker symbol.
-    """
+def fetch_stock_news_24h(ticker: str, limit: int = 5) -> Dict[str, Any]:
+    """Fetches past 24-hour news strictly for any specific stock ticker."""
     ticker = ticker.strip().upper().replace(".NS", "").replace(".BO", "")
     query = f"{ticker} stock when:1d"
     encoded_query = urllib.parse.quote(query)

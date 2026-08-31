@@ -1,41 +1,27 @@
 """
-nifty_prediction_service.py — Hybrid Technical + Sentiment Nifty 50 Prediction Engine
-Synthesizes technical levels, Option Chain PCR, India VIX, and AI sentiment to generate
-accurate price targets, probabilities, and tactical trading playbooks.
+services/prediction_service/predictor.py — Hybrid Nifty 50 Prediction & AI Reasoning Engine
 """
 
 import json
 import requests
-from typing import Dict, Any, List
-from config.settings import settings
-from services.technical_analysis_service import fetch_nifty_technical_data
-from services.market_data_service import get_market_indices, get_fii_dii_cash_flows
-from services.news_service import get_breaking_market_news
+from typing import Dict, Any
+from common.config import settings
+from services.technical_analysis_service import compute_nifty_technicals, compute_option_metrics
+from services.market_data_service import fetch_market_indices, fetch_fii_dii_cash_flows
 
-def generate_nifty_prediction_model() -> Dict[str, Any]:
-    """
-    Generates a full institutional prediction model for NIFTY 50:
-      • Technical Range, Supports & Resistances
-      • Derivatives (PCR, Max Pain, Key Call/Put OI Strikes)
-      • Bull & Bear Case Probabilities
-      • Actionable Intraday/Swing Trade Plan (Entry, SL, Targets)
-    """
-    tech = fetch_nifty_technical_data()
-    indices = get_market_indices()
-    fii_dii = get_fii_dii_cash_flows()
-    news = get_breaking_market_news(limit=4)
+def generate_prediction_model() -> Dict[str, Any]:
+    """Synthesizes technical levels, Option Chain PCR, and AI sentiment to generate targets and trade plans."""
+    tech = compute_nifty_technicals()
+    derivs = compute_option_metrics(tech["current_price"], tech["pivots"]["pivot"])
+    indices = fetch_market_indices()
+    fii_dii = fetch_fii_dii_cash_flows()
 
     curr_p = tech["current_price"]
     vix = indices["vix"]["price"]
     pivots = tech["pivots"]
     mas = tech["moving_averages"]
     rsi = tech["oscillators"]["rsi_14"]
-
-    # Option Chain / PCR Metrics (Calculated / Estimated based on level)
-    # Estimate major strike round numbers
     atm_strike = round(curr_p / 100) * 100
-    pcr_val = 0.94 if curr_p < pivots["pivot"] else 1.15
-    max_pain = atm_strike
 
     prompt = f"""You are an elite derivative analyst and technical strategist for Indian equities.
 Synthesize the following technical indicators and market data for NIFTY 50 to generate tomorrow's exact trading prediction:
@@ -44,8 +30,7 @@ TECHNICALS:
 • Current Price: {curr_p}
 • Pivots: S2={pivots['s2']}, S1={pivots['s1']}, Pivot={pivots['pivot']}, R1={pivots['r1']}, R2={pivots['r2']}
 • 20 EMA: {mas['ema_20']} | 50 SMA: {mas['sma_50']} | 200 SMA: {mas['sma_200']}
-• RSI (14): {rsi}
-• India VIX: {vix}
+• RSI (14): {rsi} | India VIX: {vix}
 • Institutional FII Flow: {fii_dii['fii']['formatted_net']} | DII Flow: {fii_dii['dii']['formatted_net']}
 
 Return valid JSON with:
@@ -123,13 +108,7 @@ Return valid JSON with:
 
     return {
         "technical_data": tech,
-        "derivatives_data": {
-            "pcr": pcr_val,
-            "pcr_bias": "Bullish / Oversold" if pcr_val < 0.9 else ("Neutral" if pcr_val < 1.3 else "Overbought"),
-            "max_pain": max_pain,
-            "key_support_strike": f"{atm_strike - 100} PE (Heavy Put OI)",
-            "key_resistance_strike": f"{atm_strike + 200} CE (Major Call OI)"
-        },
+        "derivatives_data": derivs,
         "indices": indices,
         "fii_dii": fii_dii,
         "prediction": model_output

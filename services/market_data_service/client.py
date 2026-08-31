@@ -1,30 +1,25 @@
 """
-market_data_service.py — Live Indian Market Indices & FII/DII Cash Flow Service
+services/market_data_service/client.py — Live Indian Market Indices & FII/DII Data Client
 """
 
 import json
-import time
 import urllib.request
 import requests
 from datetime import datetime, timezone
 from typing import Dict, Any
-from config.settings import settings
+from common.config import settings
 
-CACHE_FILE = settings.DATA_DIR / "market_data_cache.json"
-
-def get_market_indices() -> Dict[str, Any]:
-    """
-    Fetches live or latest closing quotes for NIFTY 50, BSE SENSEX, BANK NIFTY, and INDIA VIX.
-    """
+def fetch_market_indices() -> Dict[str, Any]:
+    """Fetches live quotes for NIFTY 50, SENSEX, BANK NIFTY, and INDIA VIX."""
     symbols = {
-        "nifty": {"symbol": "%5ENSEI", "name": "NIFTY 50", "default": 24175.70, "def_chg": -43.35, "def_pct": -0.18},
-        "sensex": {"symbol": "%5EBSESN", "name": "BSE SENSEX", "default": 77264.50, "def_chg": -104.61, "def_pct": -0.14},
+        "nifty": {"symbol": "%5ENSEI", "name": "NIFTY 50", "default": 24080.40, "def_chg": -254.15, "def_pct": -1.04},
+        "sensex": {"symbol": "%5EBSESN", "name": "BSE SENSEX", "default": 76957.27, "def_chg": -698.82, "def_pct": -0.90},
         "banknifty": {"symbol": "%5ENSEBANK", "name": "BANK NIFTY", "default": 57496.30, "def_chg": -27.20, "def_pct": -0.05},
         "vix": {"symbol": "%5EINDIAVIX", "name": "INDIA VIX", "default": 10.68, "def_chg": -0.85, "def_pct": -7.37},
     }
 
     result = {}
-    headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
+    headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"}
 
     for k, item in symbols.items():
         sym = item["symbol"]
@@ -68,15 +63,12 @@ def get_market_indices() -> Dict[str, Any]:
     return result
 
 
-def get_fii_dii_cash_flows() -> Dict[str, Any]:
-    """
-    Fetches official daily FII / FPI and DII net cash market flows from NSE India.
-    """
+def fetch_fii_dii_cash_flows() -> Dict[str, Any]:
+    """Fetches official daily FII/DII cash flow data from NSE India."""
     url = "https://www.nseindia.com/api/fiidiiTradeReact"
     headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
         "Accept": "application/json, text/plain, */*",
-        "Accept-Language": "en-US,en;q=0.9",
         "Referer": "https://www.nseindia.com/reports/fii-dii",
     }
 
@@ -89,10 +81,8 @@ def get_fii_dii_cash_flows() -> Dict[str, Any]:
             fii_entry, dii_entry = None, None
             for item in data:
                 cat = str(item.get("category", "")).upper()
-                if "FII" in cat or "FPI" in cat:
-                    fii_entry = item
-                elif "DII" in cat:
-                    dii_entry = item
+                if "FII" in cat or "FPI" in cat: fii_entry = item
+                elif "DII" in cat: dii_entry = item
 
             if fii_entry and dii_entry:
                 fii_buy = float(fii_entry.get("buyValue", 0))
@@ -111,17 +101,13 @@ def get_fii_dii_cash_flows() -> Dict[str, Any]:
                     "source": "NSE Official",
                     "fii": {
                         "category": "FII / FPI",
-                        "buy": fii_buy,
-                        "sell": fii_sell,
-                        "net": fii_net,
+                        "buy": fii_buy, "sell": fii_sell, "net": fii_net,
                         "bias": "BUYERS" if fii_net > 0 else "SELLERS",
                         "formatted_net": f"{'+' if fii_net > 0 else ''}Rs. {fii_net:,.2f} Cr"
                     },
                     "dii": {
                         "category": "DII (Domestic)",
-                        "buy": dii_buy,
-                        "sell": dii_sell,
-                        "net": dii_net,
+                        "buy": dii_buy, "sell": dii_sell, "net": dii_net,
                         "bias": "BUYERS" if dii_net > 0 else "SELLERS",
                         "formatted_net": f"{'+' if dii_net > 0 else ''}Rs. {dii_net:,.2f} Cr"
                     },
@@ -132,7 +118,6 @@ def get_fii_dii_cash_flows() -> Dict[str, Any]:
     except Exception:
         pass
 
-    # Reliable current close fallback
     date_str = datetime.now(timezone.utc).strftime("%d-%b-%Y")
     return {
         "date": date_str,

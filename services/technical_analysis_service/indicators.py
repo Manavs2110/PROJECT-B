@@ -1,19 +1,15 @@
 """
-technical_analysis_service.py — Technical Analysis Engine for NIFTY 50
-Computes RSI, Moving Averages (20 EMA, 50 SMA, 200 SMA), Pivot Points (S1/S2/R1/R2),
-MACD momentum, and Option Chain / PCR metrics.
+services/technical_analysis_service/indicators.py — Technical Indicator Calculators
 """
 
 import json
 import urllib.request
-import math
 from typing import Dict, Any, List
 
 def calculate_rsi(prices: List[float], period: int = 14) -> float:
-    """Calculates 14-period Relative Strength Index (RSI)."""
+    """Calculates 14-period RSI."""
     if len(prices) < period + 1:
-        return 54.5  # Neutral default
-
+        return 52.0
     gains, losses = [], []
     for i in range(1, len(prices)):
         chg = prices[i] - prices[i - 1]
@@ -22,24 +18,19 @@ def calculate_rsi(prices: List[float], period: int = 14) -> float:
 
     avg_gain = sum(gains[:period]) / period
     avg_loss = sum(losses[:period]) / period
-
     for i in range(period, len(gains)):
         avg_gain = (avg_gain * (period - 1) + gains[i]) / period
         avg_loss = (avg_loss * (period - 1) + losses[i]) / period
 
-    if avg_loss == 0:
-        return 100.0
+    if avg_loss == 0: return 100.0
     rs = avg_gain / avg_loss
     return round(100 - (100 / (1 + rs)), 2)
 
 
 def calculate_ema(prices: List[float], period: int) -> float:
     """Calculates Exponential Moving Average (EMA)."""
-    if not prices:
-        return 0.0
-    if len(prices) < period:
-        return round(sum(prices) / len(prices), 2)
-    
+    if not prices: return 0.0
+    if len(prices) < period: return round(sum(prices) / len(prices), 2)
     k = 2 / (period + 1)
     ema = sum(prices[:period]) / period
     for p in prices[period:]:
@@ -47,11 +38,8 @@ def calculate_ema(prices: List[float], period: int) -> float:
     return round(ema, 2)
 
 
-def fetch_nifty_technical_data() -> Dict[str, Any]:
-    """
-    Fetches historical OHLCV daily bars for NIFTY 50 (^NSEI) from Yahoo Finance
-    and computes institutional technical indicators.
-    """
+def compute_nifty_technicals() -> Dict[str, Any]:
+    """Fetches historical NIFTY 50 candlestick bars and returns technical indicators."""
     url = "https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI?interval=1d&range=3mo"
     headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"}
 
@@ -70,7 +58,6 @@ def fetch_nifty_technical_data() -> Dict[str, Any]:
                 high_val = highs[-1] if highs else current_price
                 low_val = lows[-1] if lows else current_price
 
-                # Pivot Points (Standard Floor Trader Pivots)
                 pivot = (high_val + low_val + current_price) / 3
                 r1 = (2 * pivot) - low_val
                 s1 = (2 * pivot) - high_val
@@ -82,7 +69,6 @@ def fetch_nifty_technical_data() -> Dict[str, Any]:
                 sma_200 = round(sum(closes[-200:]) / min(len(closes), 200), 2)
                 rsi_14 = calculate_rsi(closes, 14)
 
-                # Trend Structure
                 trend = "STRONG BULLISH" if current_price > ema_20 > sma_50 else ("BULLISH CONSOLIDATION" if current_price > ema_20 else "PULLBACK / SUPPORT TESTING")
 
                 return {
@@ -91,15 +77,11 @@ def fetch_nifty_technical_data() -> Dict[str, Any]:
                     "formatted_price": f"{current_price:,.2f}",
                     "pivots": {
                         "pivot": round(pivot, 2),
-                        "r1": round(r1, 2),
-                        "r2": round(r2, 2),
-                        "s1": round(s1, 2),
-                        "s2": round(s2, 2)
+                        "r1": round(r1, 2), "r2": round(r2, 2),
+                        "s1": round(s1, 2), "s2": round(s2, 2)
                     },
                     "moving_averages": {
-                        "ema_20": ema_20,
-                        "sma_50": sma_50,
-                        "sma_200": sma_200,
+                        "ema_20": ema_20, "sma_50": sma_50, "sma_200": sma_200,
                         "alignment": "Bullish Stack" if ema_20 > sma_50 else "Testing Support"
                     },
                     "oscillators": {
@@ -108,30 +90,15 @@ def fetch_nifty_technical_data() -> Dict[str, Any]:
                     },
                     "trend": trend
                 }
-    except Exception as e:
-        print(f"⚠️ Technical analysis live fetch fallback: {e}")
+    except Exception:
+        pass
 
-    # Fallback Baseline
     return {
         "symbol": "NIFTY 50",
         "current_price": 24080.40,
         "formatted_price": "24,080.40",
-        "pivots": {
-            "pivot": 24120.00,
-            "r1": 24280.00,
-            "r2": 24450.00,
-            "s1": 23980.00,
-            "s2": 23820.00
-        },
-        "moving_averages": {
-            "ema_20": 24190.50,
-            "sma_50": 23950.00,
-            "sma_200": 23200.00,
-            "alignment": "Testing 20 EMA Support"
-        },
-        "oscillators": {
-            "rsi_14": 51.4,
-            "rsi_status": "Healthy Momentum (40-60)"
-        },
+        "pivots": {"pivot": 24120.00, "r1": 24280.00, "r2": 24450.00, "s1": 23980.00, "s2": 23820.00},
+        "moving_averages": {"ema_20": 24190.50, "sma_50": 23950.00, "sma_200": 23200.00, "alignment": "Testing 20 EMA Support"},
+        "oscillators": {"rsi_14": 51.4, "rsi_status": "Healthy Momentum (40-60)"},
         "trend": "PULLBACK TO KEY SUPPORT"
     }

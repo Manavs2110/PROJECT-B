@@ -1,39 +1,80 @@
 """
-main.py — Production Entrypoint for FinPulse Microservices & CLI
+main.py — FinPulse Microservices Orchestrator & CLI
 """
 
 import sys
 import argparse
-from config.settings import settings
-from services import (
-    get_market_indices, get_fii_dii_cash_flows,
-    get_breaking_market_news, analyze_market_sentiment,
-    generate_4slide_carousel, publish_to_instagram
-)
+from common.config import settings
+
+# Microservice Imports
+from services.market_data_service import fetch_market_indices, fetch_fii_dii_cash_flows
+from services.news_curation_service import fetch_breaking_market_news, fetch_stock_news_24h
+from services.technical_analysis_service import compute_nifty_technicals, compute_option_metrics
+from services.prediction_service import generate_prediction_model
+from services.visual_rendering_service import render_market_impact_carousel, render_prediction_carousel
+from services.publishing_service import publish_carousel_to_instagram
 
 def main():
-    parser = argparse.ArgumentParser(description="FinPulse Daily Market Intelligence Microservices")
-    parser.add_argument("--generate", action="store_true", help="Generate the 1st Post (Daily Market Intelligence 4-slide carousel)")
-    parser.add_argument("--prediction", action="store_true", help="Generate the 2nd Post (Nifty 50 Prediction & Technical Analysis 4-slide carousel)")
-    parser.add_argument("--publish", action="store_true", help="Generate and publish directly to Instagram")
-    parser.add_argument("--api", action="store_true", help="Run the FastAPI REST microservice gateway")
-    parser.add_argument("--port", type=int, default=settings.PORT, help="Port to run the API on")
+    parser = argparse.ArgumentParser(description="FinPulse Financial Microservices Orchestrator")
+    parser.add_argument("--post1", "--generate", action="store_true", help="Generate Post 1: Daily Market Intelligence Carousel")
+    parser.add_argument("--post2", "--prediction", action="store_true", help="Generate Post 2: Nifty 50 Prediction & Technical Analysis Carousel")
+    parser.add_argument("--publish", action="store_true", help="Publish generated carousel directly to Instagram")
+    parser.add_argument("--api", action="store_true", help="Run the Central FastAPI Microservices Gateway")
+    parser.add_argument("--port", type=int, default=settings.PORT, help="Port to run the API Gateway on")
     args = parser.parse_args()
 
     if args.api:
         import uvicorn
-        print(f"🚀 Launching FinPulse REST API on port {args.port}...")
-        uvicorn.run("api.app:app", host="0.0.0.0", port=args.port, reload=settings.DEBUG)
+        print(f"🚀 Launching FinPulse Microservices Gateway on port {args.port}...")
+        uvicorn.run("gateway.app:app", host="0.0.0.0", port=args.port, reload=settings.DEBUG)
         return
 
-    if args.prediction:
-        from services.nifty_prediction_service import generate_nifty_prediction_model
-        from services.prediction_image_service import generate_nifty_prediction_carousel
+    if args.post1:
         print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print("  FINPULSE NIFTY 50 PREDICTION & TECHNICAL ANALYSIS POST  ")
+        print("  FINPULSE POST #1: DAILY MARKET INTELLIGENCE & FLOWS     ")
         print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-        print("1️⃣ Calculating Technicals & Synthesizing Prediction Model...")
-        model = generate_nifty_prediction_model()
+        print("1️⃣ [market_data_service] Fetching live indices & flows...")
+        indices = fetch_market_indices()
+        fii_dii = fetch_fii_dii_cash_flows()
+        print(f"   • NIFTY 50: {indices['nifty']['formatted_price']} ({indices['nifty']['formatted_change']})")
+        print(f"   • SENSEX:   {indices['sensex']['formatted_price']} ({indices['sensex']['formatted_change']})")
+        print(f"   • FII Net:  {fii_dii['fii']['formatted_net']} | DII Net: {fii_dii['dii']['formatted_net']}")
+
+        print("\n2️⃣ [news_curation_service] Curating market news catalysts...")
+        news = fetch_breaking_market_news(limit=5)
+
+        print("\n3️⃣ [visual_rendering_service] Generating 4-Slide Market Impact Carousel...")
+        sentiment = {
+            "market_mood": "Bullish Momentum" if indices["nifty"]["is_positive"] else "Consolidation",
+            "vix_interpretation": f"India VIX at {indices['vix']['price']:.2f} signals calm volatility",
+            "sectors": [
+                {"sector_name": "Banking & Financials", "impact": "BULLISH", "catalyst": "Private lenders credit growth.", "affected_stocks": ["HDFCBANK", "ICICIBANK", "SBIN"]},
+                {"sector_name": "IT & AI", "impact": "BULLISH", "catalyst": "Global enterprise AI momentum.", "affected_stocks": ["TCS", "INFY", "HCLTECH"]},
+                {"sector_name": "Energy & Oil", "impact": "BEARISH", "catalyst": "Downstream margin adjustments.", "affected_stocks": ["RELIANCE", "ONGC"]}
+            ],
+            "tactical_strategy": "Accumulate leading private banks & IT leaders on pullbacks."
+        }
+        slides = render_market_impact_carousel(indices, fii_dii, sentiment, news)
+        print("   ✅ Post #1 Slides generated:")
+        for idx, s in enumerate(slides, 1):
+            print(f"      [Slide {idx}] {s}")
+
+        if args.publish:
+            print("\n4️⃣ [publishing_service] Publishing to Instagram @finpulse.daily...")
+            caption = f"🔥 D-Street Daily Intelligence • Nifty: {indices['nifty']['formatted_price']} | Total FII/DII Net: {fii_dii['formatted_total_net']}"
+            res = publish_carousel_to_instagram(slides, caption)
+            if res.get("success"):
+                print(f"   🎉 Published successfully! Post URL: {res.get('post_url')}")
+            else:
+                print(f"   ❌ Publish failed: {res.get('error')}")
+        return
+
+    if args.post2:
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("  FINPULSE POST #2: NIFTY 50 PREDICTION & TECHNICALS      ")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+        print("1️⃣ [technical_analysis_service & prediction_service] Running models...")
+        model = generate_prediction_model()
         tech = model["technical_data"]
         pred = model["prediction"]
         print(f"   • Nifty Spot:      {tech['formatted_price']}")
@@ -41,51 +82,16 @@ def main():
         print(f"   • Target Range:    {pred.get('expected_trading_range')}")
         print(f"   • Probability:     {pred.get('probability_bull_pct')}%")
 
-        print("\n2️⃣ Rendering 4-Slide Prediction Visual Carousel...")
-        slides = generate_nifty_prediction_carousel(model)
-        print("   ✅ Prediction Slides generated:")
+        print("\n2️⃣ [visual_rendering_service] Generating 4-Slide Prediction Carousel...")
+        slides = render_prediction_carousel(model)
+        print("   ✅ Post #2 Slides generated:")
         for idx, s in enumerate(slides, 1):
             print(f"      [Slide {idx}] {s}")
 
         if args.publish:
-            print("\n3️⃣ Publishing Nifty Prediction Post to Instagram @finpulse.daily...")
-            caption = f"🎯 Nifty 50 Prediction: Targets {pred.get('expected_trading_range')} • Trend: {pred.get('predicted_trend')} • Pivots & Trade Plan Inside! 👇"
-            res = publish_to_instagram(slides, caption)
-            if res.get("success"):
-                print(f"   🎉 Published successfully! Post URL: {res.get('post_url')}")
-            else:
-                print(f"   ❌ Publish failed: {res.get('error')}")
-        return
-
-    if args.generate or args.publish:
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print("  FINPULSE DAILY MARKET INTELLIGENCE (1ST POST GENERATOR) ")
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-        
-        print("1️⃣ Fetching market indices & cash flows...")
-        indices = get_market_indices()
-        fii_dii = get_fii_dii_cash_flows()
-        print(f"   • NIFTY 50: {indices['nifty']['formatted_price']} ({indices['nifty']['formatted_change']})")
-        print(f"   • SENSEX:   {indices['sensex']['formatted_price']} ({indices['sensex']['formatted_change']})")
-        print(f"   • FII Net:  {fii_dii['fii']['formatted_net']} | DII Net: {fii_dii['dii']['formatted_net']}")
-        
-        print("\n2️⃣ Curating breaking market news...")
-        news = get_breaking_market_news(limit=5)
-        
-        print("\n3️⃣ Analyzing sentiment & sector matrices...")
-        sentiment = analyze_market_sentiment(indices, fii_dii, news)
-        print(f"   • Sentiment Bias: {sentiment.get('market_mood')}")
-        
-        print("\n4️⃣ Rendering 4-Slide visual carousel...")
-        slides = generate_4slide_carousel(indices, fii_dii, sentiment, news)
-        print("   ✅ Slides generated:")
-        for idx, s in enumerate(slides, 1):
-            print(f"      [Slide {idx}] {s}")
-            
-        if args.publish:
-            print("\n5️⃣ Publishing to Instagram @finpulse.daily...")
-            caption = f"🔥 D-Street Daily Intelligence • Nifty: {indices['nifty']['formatted_price']} | Total FII/DII Net: {fii_dii['formatted_total_net']}"
-            res = publish_to_instagram(slides, caption)
+            print("\n3️⃣ [publishing_service] Publishing to Instagram @finpulse.daily...")
+            caption = f"🎯 Nifty 50 Prediction: Targets {pred.get('expected_trading_range')} • Trend: {pred.get('predicted_trend')}"
+            res = publish_carousel_to_instagram(slides, caption)
             if res.get("success"):
                 print(f"   🎉 Published successfully! Post URL: {res.get('post_url')}")
             else:

@@ -1,5 +1,5 @@
 """
-settings.py — Production Configuration & Environment Manager for FinPulse
+common/config.py — Centralized Configuration & Environment Settings
 """
 
 import os
@@ -10,8 +10,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 class Settings:
-    PROJECT_NAME: str = "FinPulse Daily Market Intelligence Microservice"
-    VERSION: str = "2.0.0"
+    PROJECT_NAME: str = "FinPulse Microservices Architecture"
+    VERSION: str = "2.1.0"
     BASE_DIR: Path = BASE_DIR
     
     # Storage Paths
@@ -20,19 +20,17 @@ class Settings:
     DATA_DIR: Path = BASE_DIR / "data"
     SESSIONS_DIR: Path = BASE_DIR / "data" / "sessions"
     
-    # API Keys & Credentials
+    # Credentials & API Keys
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
     IMGBB_API_KEY: str = os.getenv("IMGBB_API_KEY", "")
     
-    # Instagram Credentials
     INSTAGRAM_USERNAME: str = os.getenv("INSTAGRAM_FINPULSE_USERNAME", "finpulse.daily")
     INSTAGRAM_PASSWORD: str = os.getenv("INSTAGRAM_FINPULSE_PASSWORD", "")
     
-    # Server Settings
+    # Networking
     PORT: int = int(os.getenv("PORT", 8000))
     DEBUG: bool = os.getenv("DEBUG", "False").lower() in ("true", "1")
     
-    # Visual Branding
     PAGE_HANDLE: str = "finpulse.daily"
     BRAND_NAME: str = "FINPULSE DAILY"
 

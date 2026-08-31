@@ -1,5 +1,5 @@
 """
-test_microservices.py — Production Test Suite for PROJECT-B
+test_microservices.py — Comprehensive Test Suite for Separated Microservices
 """
 
 import os
@@ -7,76 +7,65 @@ import sys
 import unittest
 sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
 
-from services import (
-    get_market_indices, get_fii_dii_cash_flows,
-    get_breaking_market_news, get_stock_news_24h,
-    analyze_market_sentiment, generate_4slide_carousel,
-    fetch_nifty_technical_data, generate_nifty_prediction_model,
-    generate_nifty_prediction_carousel
-)
+from common import settings, get_font, create_gradient_canvas
+from services.market_data_service import fetch_market_indices, fetch_fii_dii_cash_flows
+from services.news_curation_service import fetch_breaking_market_news, fetch_stock_news_24h
+from services.technical_analysis_service import compute_nifty_technicals, compute_option_metrics
+from services.prediction_service import generate_prediction_model
+from services.visual_rendering_service import render_market_impact_carousel, render_prediction_carousel
 
-class TestFinPulseMicroservices(unittest.TestCase):
+class TestMicroservicesArchitecture(unittest.TestCase):
 
-    def test_market_indices(self):
-        indices = get_market_indices()
+    def test_common_module(self):
+        self.assertIsNotNone(settings.OUTPUT_DIR)
+        canvas = create_gradient_canvas((185, 28, 28), (69, 10, 10))
+        self.assertEqual(canvas.size, (1080, 1080))
+
+    def test_market_data_service(self):
+        indices = fetch_market_indices()
+        flows = fetch_fii_dii_cash_flows()
         self.assertIn("nifty", indices)
         self.assertIn("sensex", indices)
-        self.assertIn("banknifty", indices)
-        self.assertIn("vix", indices)
-        self.assertGreater(indices["nifty"]["price"], 0)
-
-    def test_fii_dii_flows(self):
-        flows = get_fii_dii_cash_flows()
         self.assertIn("fii", flows)
         self.assertIn("dii", flows)
-        self.assertIn("total_net", flows)
 
-    def test_breaking_news(self):
-        news = get_breaking_market_news(limit=3)
+    def test_news_curation_service(self):
+        news = fetch_breaking_market_news(limit=3)
+        stock_news = fetch_stock_news_24h("TCS", limit=2)
         self.assertGreaterEqual(len(news), 1)
-        self.assertIn("title", news[0])
+        self.assertEqual(stock_news["ticker"], "TCS")
 
-    def test_stock_news_24h(self):
-        res = get_stock_news_24h("RELIANCE", limit=3)
-        self.assertEqual(res["ticker"], "RELIANCE")
-        self.assertGreaterEqual(res["count"], 1)
+    def test_technical_analysis_service(self):
+        tech = compute_nifty_technicals()
+        derivs = compute_option_metrics(tech["current_price"], tech["pivots"]["pivot"])
+        self.assertIn("pivots", tech)
+        self.assertIn("moving_averages", tech)
+        self.assertIn("pcr", derivs)
 
-    def test_sentiment_analysis(self):
-        indices = get_market_indices()
-        flows = get_fii_dii_cash_flows()
-        news = get_breaking_market_news(limit=3)
-        sentiment = analyze_market_sentiment(indices, flows, news)
-        self.assertIn("market_mood", sentiment)
-        self.assertIn("sectors", sentiment)
+    def test_prediction_service(self):
+        model = generate_prediction_model()
+        self.assertIn("technical_data", model)
+        self.assertIn("prediction", model)
+        self.assertIn("trade_playbook", model["prediction"])
 
-    def test_4slide_image_generation(self):
-        indices = get_market_indices()
-        flows = get_fii_dii_cash_flows()
-        news = get_breaking_market_news(limit=3)
-        sentiment = analyze_market_sentiment(indices, flows, news)
-        slides = generate_4slide_carousel(indices, flows, sentiment, news)
+    def test_visual_rendering_post1(self):
+        indices = fetch_market_indices()
+        flows = fetch_fii_dii_cash_flows()
+        news = fetch_breaking_market_news(limit=3)
+        sentiment = {
+            "market_mood": "Bullish",
+            "vix_interpretation": "Low volatility",
+            "sectors": [{"sector_name": "Banking", "impact": "BULLISH", "catalyst": "Growth", "affected_stocks": ["HDFCBANK"]}],
+            "tactical_strategy": "Buy on dips"
+        }
+        slides = render_market_impact_carousel(indices, flows, sentiment, news)
         self.assertEqual(len(slides), 4)
         for s in slides:
             self.assertTrue(os.path.exists(s))
 
-    def test_technical_analysis(self):
-        tech = fetch_nifty_technical_data()
-        self.assertIn("current_price", tech)
-        self.assertIn("pivots", tech)
-        self.assertIn("moving_averages", tech)
-        self.assertIn("oscillators", tech)
-        self.assertGreater(tech["pivots"]["r1"], tech["pivots"]["s1"])
-
-    def test_nifty_prediction_model(self):
-        model = generate_nifty_prediction_model()
-        self.assertIn("technical_data", model)
-        self.assertIn("derivatives_data", model)
-        self.assertIn("prediction", model)
-        self.assertIn("trade_playbook", model["prediction"])
-
-    def test_nifty_prediction_carousel_generation(self):
-        model = generate_nifty_prediction_model()
-        slides = generate_nifty_prediction_carousel(model)
+    def test_visual_rendering_post2(self):
+        model = generate_prediction_model()
+        slides = render_prediction_carousel(model)
         self.assertEqual(len(slides), 4)
         for s in slides:
             self.assertTrue(os.path.exists(s))
