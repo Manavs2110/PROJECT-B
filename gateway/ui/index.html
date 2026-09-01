@@ -108,6 +108,9 @@
       <button onclick="switchTab('news')" id="tabBtn_news" class="text-slate-400 hover:text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2">
         <i class="fa-solid fa-newspaper"></i> 24h Stock News Engine
       </button>
+      <button onclick="switchTab('cron')" id="tabBtn_cron" class="text-slate-400 hover:text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2">
+        <i class="fa-solid fa-clock text-amber-400"></i> 4:00 PM Auto-Publisher (Cron)
+      </button>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
@@ -344,6 +347,88 @@
       </div>
     </div>
 
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- TAB 4: 4:00 PM AUTO-PUBLISHER CRON SCHEDULER -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <div id="view_cron" class="space-y-8 hidden">
+      
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Status Card -->
+        <div class="glass-card p-6 rounded-2xl lg:col-span-2 space-y-4">
+          <div class="flex items-center justify-between pb-4 border-b border-brand-border">
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-clock-rotate-left text-amber-400"></i> Daily 4:00 PM IST Auto-Publisher Status
+            </h2>
+            <span id="cronTradingBadge" class="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-mono font-bold">
+              ACTIVE (MON-FRI)
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-center">
+            <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+              <span class="text-xs text-slate-400 block mb-1">Target Trigger Time</span>
+              <span class="text-lg font-bold text-amber-400">16:00 IST (4 PM)</span>
+            </div>
+            <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+              <span class="text-xs text-slate-400 block mb-1">Active Trading Days</span>
+              <span class="text-lg font-bold text-emerald-400">Mon — Fri</span>
+            </div>
+            <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+              <span class="text-xs text-slate-400 block mb-1">Current IST Clock</span>
+              <span id="currentIstClock" class="text-sm font-bold text-white">Loading...</span>
+            </div>
+          </div>
+
+          <!-- Crontab Command Box -->
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-terminal text-amber-400"></i> System Crontab Entry (`crontab -e`)
+              </span>
+              <button onclick="copyCrontabCmd()" class="text-xs text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1">
+                <i class="fa-regular fa-copy"></i> Copy Crontab Command
+              </button>
+            </div>
+            <textarea id="crontabCmdText" rows="2" class="w-full bg-slate-900 text-xs font-mono p-3 rounded-lg border border-slate-800 text-emerald-400 focus:outline-none" readonly></textarea>
+          </div>
+        </div>
+
+        <!-- Manual Trigger & Control Box -->
+        <div class="glass-card p-6 rounded-2xl flex flex-col justify-between border-amber-500/20 glow-amber">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">Automated Workflow</span>
+              <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 text-xs font-mono">POST 1 & 2</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">Trigger 4 PM Pipeline</h3>
+            <p class="text-xs text-slate-400 mb-4">
+              Executes the full post-market closing pipeline: fetches latest FII/DII data, renders both 5-slide carousels, and publishes directly to @finpulse.daily.
+            </p>
+          </div>
+
+          <div class="space-y-3">
+            <button onclick="triggerCronJob(true)" id="triggerCronBtn" class="w-full py-3.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm shadow-lg transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-play"></i> Trigger 4 PM Job (Render & Post)
+            </button>
+            <button onclick="triggerCronJob(false)" id="triggerCronNoPubBtn" class="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs border border-slate-700 transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-eye"></i> Dry Run (Render Only)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Execution Logs Container -->
+      <div id="cronLogSection" class="glass-card p-6 rounded-2xl hidden">
+        <h3 class="text-base font-bold text-white mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-list-check text-emerald-400"></i> Execution Summary & Live Links
+        </h3>
+        <div id="cronLogContainer" class="space-y-2 text-xs font-mono bg-slate-950 p-4 rounded-xl border border-slate-800 text-slate-300">
+        </div>
+      </div>
+
+    </div>
+
   </main>
 
   <!-- Image Modal for Fullscreen Preview -->
@@ -359,7 +444,7 @@
   <script>
     // ── Navigation Tab Switcher ──
     function switchTab(tabId) {
-      const tabs = ['post1', 'post2', 'news'];
+      const tabs = ['post1', 'post2', 'news', 'cron'];
       tabs.forEach(t => {
         const view = document.getElementById('view_' + t);
         const btn = document.getElementById('tabBtn_' + t);
@@ -373,6 +458,7 @@
           btn.classList.add('text-slate-400');
         }
       });
+      if (tabId === 'cron') loadSchedulerStatus();
     }
 
     // ── Load Market Tickers & Technical Data on Init ──
@@ -695,6 +781,69 @@
       copyText.select();
       navigator.clipboard.writeText(copyText.value);
       alert('Caption copied to clipboard!');
+    }
+
+    // ── Scheduler & Cron Handlers ──
+    async function loadSchedulerStatus() {
+      try {
+        const res = await fetch('/api/v1/scheduler/status');
+        const data = await res.json();
+        document.getElementById('currentIstClock').innerText = data.current_time_ist;
+        document.getElementById('crontabCmdText').value = data.crontab_command;
+        const badge = document.getElementById('cronTradingBadge');
+        if (data.is_trading_day) {
+          badge.className = "px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-mono font-bold";
+          badge.innerText = "TRADING DAY ACTIVE";
+        } else {
+          badge.className = "px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 text-xs font-mono font-bold";
+          badge.innerText = "MARKET CLOSED (WEEKEND)";
+        }
+      } catch (e) {
+        console.error("Error fetching scheduler status:", e);
+      }
+    }
+
+    function copyCrontabCmd() {
+      const copyText = document.getElementById('crontabCmdText');
+      copyText.select();
+      navigator.clipboard.writeText(copyText.value);
+      alert('Crontab entry copied! Run `crontab -e` in terminal and paste it.');
+    }
+
+    async function triggerCronJob(publish) {
+      const btn = publish ? document.getElementById('triggerCronBtn') : document.getElementById('triggerCronNoPubBtn');
+      const origHtml = btn.innerHTML;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Executing 4 PM Pipeline...`;
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(`/api/v1/scheduler/trigger-now?publish=${publish}`, { method: 'POST' });
+        const data = await res.json();
+        const logSec = document.getElementById('cronLogSection');
+        const logCont = document.getElementById('cronLogContainer');
+        logSec.classList.remove('hidden');
+
+        if (data.success) {
+          const r = data.results;
+          let logHtml = `<div class="text-emerald-400 font-bold">✅ 4:00 PM Pipeline Completed Successfully at ${r.timestamp}</div>`;
+          if (r.post1) {
+            logHtml += `<div>• Post #1 (Market Intelligence): ${r.post1.post_url ? `<a href="${r.post1.post_url}" target="_blank" class="text-pink-400 underline">Live on Instagram</a>` : '5 Slides Rendered'}</div>`;
+          }
+          if (r.post2) {
+            logHtml += `<div>• Post #2 (Nifty 50 Prediction): ${r.post2.post_url ? `<a href="${r.post2.post_url}" target="_blank" class="text-pink-400 underline">Live on Instagram</a>` : '5 Slides Rendered'}</div>`;
+          }
+          logCont.innerHTML = logHtml;
+          alert('🎉 4:00 PM Daily Publishing Job Finished Successfully!');
+        } else {
+          logCont.innerHTML = `<div class="text-rose-400 font-bold">❌ Error: ${data.error}</div>`;
+          alert('Pipeline error: ' + data.error);
+        }
+      } catch (e) {
+        alert('Network error executing pipeline: ' + e);
+      } finally {
+        btn.innerHTML = origHtml;
+        btn.disabled = false;
+      }
     }
 
     window.onload = () => {

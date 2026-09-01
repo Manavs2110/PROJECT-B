@@ -212,3 +212,33 @@ def orchestrate_nifty_prediction_post():
         "caption": caption
     }
 
+
+# ── Automated 4:00 PM IST Cron Job Endpoints ──
+
+@app.get("/api/v1/scheduler/status", tags=["Automation & Cron"])
+def get_scheduler_status():
+    """Returns the current status of the 4:00 PM IST Auto-Publishing Cron service."""
+    import zoneinfo, datetime, sys
+    IST = zoneinfo.ZoneInfo("Asia/Kolkata")
+    now_ist = datetime.datetime.now(IST)
+    python_path = sys.executable
+    script_path = str(settings.BASE_DIR / "cron_scheduler.py")
+
+    return {
+        "service": "FinPulse 4:00 PM IST Auto-Publisher",
+        "scheduled_time": "16:00 IST (4:00 PM)",
+        "active_days": "Monday through Friday (Trading Days)",
+        "current_time_ist": now_ist.strftime("%Y-%m-%d %H:%M:%S %Z"),
+        "is_trading_day": now_ist.weekday() < 5,
+        "crontab_command": f"0 16 * * 1-5 cd {settings.BASE_DIR} && {python_path} {script_path} --now >> {settings.BASE_DIR}/cron.log 2>&1"
+    }
+
+
+@app.post("/api/v1/scheduler/trigger-now", tags=["Automation & Cron"])
+def trigger_daily_publishing_job(publish: bool = True):
+    """Manually triggers the 4:00 PM Daily Publishing Pipeline immediately."""
+    from cron_scheduler import execute_daily_publishing_job
+    res = execute_daily_publishing_job(publish_to_instagram=publish)
+    return res
+
+
